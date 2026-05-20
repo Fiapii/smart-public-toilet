@@ -292,8 +292,7 @@
   </div>
 
   <script>
-    const origin = window.location.origin || '';
-    const API_BASE = (origin.includes('localhost') || origin.includes('127.0.0.1')) ? '/api' : 'http://localhost:5000/api';
+    const API_BASE = '/api';
     let pollInterval = null;
     let targetToiletId = 1; // Default fallback
 

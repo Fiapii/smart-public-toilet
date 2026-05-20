@@ -858,7 +858,7 @@
 
   <script>
     // ==================== REAL DATABASE INTEGRATION ====================
-    const API_BASE = window.location.port === '5000' ? '/api' : 'http://localhost:5000/api';
+    const API_BASE = '/api';
     let currentUser = null;
     try {
       currentUser = JSON.parse(localStorage.getItem('user'));
