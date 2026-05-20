@@ -4,6 +4,19 @@ const cors = require('cors');
 const swaggerUi = require('swagger-ui-express');
 const swaggerJsDoc = require('swagger-jsdoc');
 
+console.log('1. Starting requires...');
+const authRoutes = require('./routes/authRoutes');
+console.log('2. authRoutes loaded:', typeof authRoutes, authRoutes ? 'OK' : 'UNDEFINED');
+const adminRoutes = require('./routes/adminRoutes');
+console.log('3. adminRoutes loaded:', typeof adminRoutes);
+// ... do the same for all routes
+
+// Then after app.use lines:
+app.use('/api/auth', authRoutes);
+console.log('4. Auth routes mounted at /api/auth');
+app.use('/api/admin', adminRoutes);
+console.log('5. Admin routes mounted at /api/admin');
+// ... etc.
 // Route imports
 const authRoutes = require('./routes/authRoutes');
 const adminRoutes = require('./routes/adminRoutes');
