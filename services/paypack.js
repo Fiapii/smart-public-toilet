@@ -10,7 +10,8 @@ class PaypackService {
   }
 
   async getAccessToken() {
-    if (this.accessToken && this.tokenExpiryTime && new Date() < this.tokenExpiryTime) {
+    // Check if we have a valid token (with 2-minute safety margin)
+    if (this.accessToken && this.tokenExpiryTime && Date.now() + 120000 < this.tokenExpiryTime) {
       return this.accessToken;
     }
 
@@ -26,7 +27,10 @@ class PaypackService {
       if (!response.data?.access) throw new Error("Failed to obtain access token from PayPack");
 
       this.accessToken = response.data.access;
-      this.tokenExpiryTime = new Date(Date.now() + 45 * 60 * 1000);
+      // Use the `expires_in` from PayPack if provided, otherwise default to 45 minutes
+      const expiresIn = (response.data.expires_in || 45 * 60) * 1000;
+      this.tokenExpiryTime = Date.now() + expiresIn - 60000; // 1 minute buffer
+      console.log(`PayPack token refreshed, expires in ${expiresIn / 1000} seconds`);
       return this.accessToken;
     } catch (error) {
       console.error("PayPack Authentication Error:", error.response?.data || error.message);
@@ -34,15 +38,47 @@ class PaypackService {
     }
   }
 
-  async initiateCashin(phoneNumber, amount) {
+  async _requestWithRetry(method, url, data = null, headers = {}) {
     const token = await this.getAccessToken();
+    const config = {
+      method,
+      url,
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+        Authorization: `Bearer ${token}`,
+        ...headers
+      },
+      data
+    };
+
     try {
-      const response = await axios.post(
-        `${this.baseUrl}/transactions/cashin`,
-        { amount, number: phoneNumber },
-        { headers: { "Content-Type": "application/json", Accept: "application/json", Authorization: `Bearer ${token}` } }
-      );
+      const response = await axios(config);
       return response.data;
+    } catch (error) {
+      // If token expired (401) and we haven't retried yet, refresh token and retry once
+      if (error.response?.status === 401) {
+        console.log("Token expired, refreshing...");
+        // Force refresh
+        this.accessToken = null;
+        this.tokenExpiryTime = null;
+        const newToken = await this.getAccessToken();
+        config.headers.Authorization = `Bearer ${newToken}`;
+        const retryResponse = await axios(config);
+        return retryResponse.data;
+      }
+      throw error;
+    }
+  }
+
+  async initiateCashin(phoneNumber, amount) {
+    try {
+      const data = await this._requestWithRetry(
+        "post",
+        `${this.baseUrl}/transactions/cashin`,
+        { amount, number: phoneNumber }
+      );
+      return data;
     } catch (error) {
       console.error("PayPack Cashin Error:", error.response?.data || error.message);
       throw error;
@@ -50,27 +86,18 @@ class PaypackService {
   }
 
   async checkPaymentStatus(transactionRef) {
-    const token = await this.getAccessToken();
     try {
-      // Use the specific transaction find endpoint which is more reliable than general events
-      const response = await axios.get(`${this.baseUrl}/transactions/find/${transactionRef}`, {
-        headers: { Accept: "application/json", Authorization: `Bearer ${token}` },
-        timeout: 10000,
-      });
-
-      // PayPack's find endpoint returns the specific transaction object
-      const transaction = response.data;
-      if (!transaction) return { status: "pending", eventKind: null };
-
-      // Map PayPack status to our internal status
-      // Possible statuses: 'successful', 'failed', 'expired', 'pending'
-      return { 
-        status: transaction.status, 
-        amount: transaction.amount,
-        kind: transaction.kind 
+      const data = await this._requestWithRetry(
+        "get",
+        `${this.baseUrl}/transactions/find/${transactionRef}`
+      );
+      if (!data) return { status: "pending", eventKind: null };
+      return {
+        status: data.status,
+        amount: data.amount,
+        kind: data.kind
       };
     } catch (error) {
-      // If 404 is returned, it might mean it's still pending or hasn't been indexed yet
       if (error.response?.status === 404) {
         return { status: "pending" };
       }
