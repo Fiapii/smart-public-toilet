@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SmartLoo — Quick Access</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;700&display=swap"
+    rel="stylesheet">
+  <style>
+    :root {
+      --accent: #2b5ce6;
+      --accent-dark: #1a3fa0;
+      --bg: #0f1117;
+      --glass: rgba(255, 255, 255, 0.05);
+      --glass-border: rgba(255, 255, 255, 0.1);
+      --text: #ffffff;
+      --text-dim: #7a7f96;
+      --success: #15a066;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      background: linear-gradient(135deg, #0f1117 0%, #1a2340 100%);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      overflow: hidden;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 400px;
+      text-align: center;
+      animation: fadeIn 0.8s ease-out;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .logo {
+      font-family: 'Syne', sans-serif;
+      font-size: 24px;
+      font-weight: 800;
+      color: var(--accent);
+      margin-bottom: 8px;
+    }
+
+    @media (max-width: 320px) {
+      .container {
+        padding: 5px;
+      }
+      .logo {
+        font-size: 16px;
+      }
+      .sub-title {
+        font-size: 11px;
+        margin-bottom: 24px;
+      }
+      .action-card {
+        padding: 16px 10px;
+        border-radius: 16px;
+      }
+      .btn-main {
+        font-size: 14px;
+        padding: 10px;
+        border-radius: 10px;
+        gap: 6px;
+      }
+      .btn-main i {
+        font-size: 14px;
+      }
+    }
+
+    .sub-title {
+      color: var(--text-dim);
+      font-size: 14px;
+      margin-bottom: 48px;
+    }
+
+    .action-card {
+      background: var(--glass);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--glass-border);
+      border-radius: 24px;
+      padding: 32px;
+      margin-bottom: 20px;
+      transition: transform 0.3s ease;
+    }
+
+    .btn-main {
+      width: 100%;
+      padding: 18px;
+      border: none;
+      border-radius: 16px;
+      font-size: 18px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .btn-pay {
+      background: var(--accent);
+      color: white;
+      box-shadow: 0 8px 24px rgba(43, 92, 230, 0.3);
+    }
+
+    .btn-pay:hover {
+      background: var(--accent-dark);
+      transform: translateY(-2px);
+    }
+
+    .btn-suggest {
+      background: var(--glass);
+      color: white;
+      border: 1px solid var(--glass-border);
+    }
+
+    .btn-suggest:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    /* Modal Styling */
+    .modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.8);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .modal.active {
+      display: flex;
+    }
+
+    .modal-content {
+      background: #1a1c24;
+      border-radius: 24px;
+      padding: 32px;
+      width: 100%;
+      max-width: 360px;
+      text-align: center;
+    }
+
+    .modal-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 20px;
+      margin-bottom: 24px;
+    }
+
+    input {
+      width: 100%;
+      padding: 16px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--glass-border);
+      border-radius: 12px;
+      color: white;
+      font-size: 18px;
+      margin-bottom: 20px;
+      outline: none;
+      text-align: center;
+    }
+
+    input:focus {
+      border-color: var(--accent);
+    }
+
+    .status-msg {
+      margin-top: 16px;
+      font-size: 14px;
+      color: var(--accent);
+    }
+
+    .success-icon {
+      font-size: 48px;
+      color: var(--success);
+      margin-bottom: 16px;
+      display: none;
+    }
+
+    .loader {
+      border: 3px solid rgba(255, 255, 255, 0.1);
+      border-top: 3px solid var(--accent);
+      border-radius: 50%;
+      width: 24px;
+      height: 24px;
+      animation: spin 1s linear infinite;
+      display: none;
+      margin: 0 auto;
+    }
+
+    @keyframes spin {
+      0% {
+        transform: rotate(0deg);
+      }
+
+      100% {
+        transform: rotate(360deg);
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="container">
+    <div class="logo">PUBLIC TOILET</div>
+    <div class="sub-title">Touchless Public Toilet System</div>
+
+    <div class="action-card">
+      <button class="btn-main btn-pay" onclick="openPayModal()">
+        <span>💳</span> Pay to Enter
+      </button>
+      <div style="font-size: 12px; color: var(--text-dim); margin-bottom: 24px;">
+        Fee: 100 RWF · Instant Access
+      </div>
+
+      <button class="btn-main btn-suggest" onclick="openSuggestModal()">
+        <span>✍️</span> Suggestions
+      </button>
+    </div>
+
+    <div style="font-size: 11px; color: var(--text-dim);">
+    Designed by IRUMVA Fiacre IT Enginnee
+    
+    </div>
+  </div>
+
+  <!-- Payment Modal -->
+  <div class="modal" id="payModal">
+    <div class="modal-content">
+      <div class="modal-title" id="mTitle">Enter Phone Number</div>
+      <div id="paymentInputs">
+        <input type="text" id="phoneNumber" placeholder="078xxxxxxx" maxlength="10">
+        <button class="btn-main btn-pay" onclick="startPayment()">Initiate Payment</button>
+      </div>
+
+      <div id="loadingArea">
+        <div class="loader" id="payLoader"></div>
+        <div class="success-icon" id="successIcon">✓</div>
+        <div class="status-msg" id="statusMsg"></div>
+      </div>
+
+      <button class="btn-main btn-suggest" style="margin-top: 20px;" onclick="closeModal()">Close</button>
+    </div>
+  </div>
+
+  <!-- Suggestions Modal -->
+  <div class="modal" id="suggestModal">
+    <div class="modal-content">
+      <div class="modal-title">Share your Feedback</div>
+      <div id="suggestInputs">
+        <textarea id="suggestionText"
+          style="width:100%; height:120px; padding:12px; background:rgba(255,255,255,0.05); border:1px solid var(--glass-border); border-radius:12px; color:white; font-family:'DM Sans'; margin-bottom:20px; outline:none;"
+          placeholder="How can we improve?"></textarea>
+        <button class="btn-main btn-pay" onclick="submitSuggestion()">Submit Feedback</button>
+      </div>
+      <div id="suggestSuccess" style="display:none;">
+        <div class="success-icon" style="display:block;">✓</div>
+        <div class="status-msg" style="color:var(--success);">Thank you for your feedback!</div>
+      </div>
+      <button class="btn-main btn-suggest" style="margin-top: 20px;" onclick="closeSuggestModal()">Close</button>
+    </div>
+  </div>
+
+  <script>
+    const origin = window.location.origin || '';
+    const API_BASE = (origin.includes('localhost') || origin.includes('127.0.0.1')) ? '/api' : 'http://localhost:5000/api';
+    let pollInterval = null;
+    let targetToiletId = 1; // Default fallback
+
+    async function fetchConfig() {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 3000); // 3s timeout
+        
+        const res = await fetch(`${API_BASE}/public/toilets`, { signal: controller.signal });
+        clearTimeout(timeoutId);
+        
+        const toilets = await res.json();
+        if (toilets && toilets.length > 0) {
+          targetToiletId = toilets[0].id;
+          console.log('Target Toilet ID set to:', targetToiletId);
+        }
+      } catch (err) {
+        console.warn('Could not fetch toilet config (timeout or error), using default ID 1');
+      }
+    }
+
+    // Call on load and capture the promise
+    const configPromise = fetchConfig();
+
+    function openPayModal() {
+      document.getElementById('payModal').classList.add('active');
+      resetModal();
+    }
+
+    function closeModal() {
+      document.getElementById('payModal').classList.remove('active');
+      if (pollInterval) clearInterval(pollInterval);
+    }
+
+    function openSuggestModal() {
+      document.getElementById('suggestModal').classList.add('active');
+      document.getElementById('suggestInputs').style.display = 'block';
+      document.getElementById('suggestSuccess').style.display = 'none';
+    }
+
+    function closeSuggestModal() {
+      document.getElementById('suggestModal').classList.remove('active');
+    }
+
+    async function submitSuggestion() {
+      await configPromise; // Ensure we have the correct toilet ID
+      const text = document.getElementById('suggestionText').value;
+      if (!text) return alert('Please enter your suggestion');
+
+      try {
+        const res = await fetch(`${API_BASE}/public/complaints`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ toilet_id: targetToiletId, description: text })
+        });
+        const data = await res.json();
+        if (data.success) {
+          document.getElementById('suggestInputs').style.display = 'none';
+          document.getElementById('suggestSuccess').style.display = 'block';
+        }
+      } catch (err) {
+        alert('Error sending feedback');
+      }
+    }
+
+    function resetModal() {
+      document.getElementById('paymentInputs').style.display = 'block';
+      document.getElementById('payLoader').style.display = 'none';
+      document.getElementById('successIcon').style.display = 'none';
+      document.getElementById('statusMsg').innerText = '';
+      document.getElementById('mTitle').innerText = 'Enter Phone Number';
+    }
+
+    async function startPayment() {
+      await configPromise;
+      const phone = document.getElementById('phoneNumber').value;
+      if (!phone || phone.length < 10) {
+        alert('Please enter a valid phone number');
+        return;
+      }
+
+      // Convert phone number to PayPack format (add 250 prefix if needed)
+      let formattedPhone = phone;
+      if (phone.startsWith('07')) {
+        formattedPhone = '250' + phone.substring(1);
+      } else if (!phone.startsWith('250')) {
+        formattedPhone = '250' + phone;
+      }
+
+      // Hide inputs, show loader
+      document.getElementById('paymentInputs').style.display = 'none';
+      document.getElementById('payLoader').style.display = 'block';
+      document.getElementById('statusMsg').innerText = 'Contacting PayPack...';
+      document.getElementById('mTitle').innerText = 'Payment in Progress';
+
+      try {
+        const res = await fetch(`${API_BASE}/payments/create`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            toilet_id: targetToiletId, 
+            amount: 100,
+            phone_number: formattedPhone
+          })
+        });
+
+        const data = await res.json();
+        if (data.success) {
+          document.getElementById('statusMsg').innerText = 'Please check your phone and enter your PIN';
+          startPolling(data.transaction_id);
+        } else {
+          let errorMsg = data.error || 'Unknown error';
+          if (data.details) {
+            errorMsg += ': ' + data.details;
+          }
+          document.getElementById('statusMsg').innerText = errorMsg;
+          document.getElementById('statusMsg').style.color = '#ff4d4d';
+          document.getElementById('payLoader').style.display = 'none';
+
+          // Re-show button after 3 seconds to try again
+          setTimeout(() => {
+            document.getElementById('paymentInputs').style.display = 'block';
+            document.getElementById('statusMsg').innerText = '';
+            document.getElementById('statusMsg').style.color = 'var(--accent)';
+          }, 4000);
+        }
+      } catch (err) {
+        document.getElementById('statusMsg').innerText = 'Connection error. Check if server is running.';
+        document.getElementById('statusMsg').style.color = '#ff4d4d';
+        document.getElementById('payLoader').style.display = 'none';
+
+        setTimeout(() => {
+          document.getElementById('paymentInputs').style.display = 'block';
+        }, 3000);
+      }
+    }
+
+    function startPolling(txnId) {
+      pollInterval = setInterval(async () => {
+        try {
+          const res = await fetch(`${API_BASE}/payments/status/${txnId}`);
+          const data = await res.json();
+
+          if (data.status === 'successful') {
+            clearInterval(pollInterval);
+            showSuccess(data);
+          } else if (data.status === 'failed' || data.status === 'expired') {
+            clearInterval(pollInterval);
+            document.getElementById('statusMsg').innerText = data.message || 'Payment was cancelled or failed.';
+            document.getElementById('statusMsg').style.color = '#ff4d4d';
+            document.getElementById('payLoader').style.display = 'none';
+          } else {
+            // Still pending
+            document.getElementById('statusMsg').innerText = data.message || 'Waiting for confirmation...';
+          }
+        } catch (err) {
+          console.error('Polling error', err);
+        }
+      }, 2000);
+    }
+
+    function showSuccess(data) {
+      document.getElementById('payLoader').style.display = 'none';
+      document.getElementById('successIcon').style.display = 'block';
+      document.getElementById('statusMsg').innerText = '✅ Payment Received!\n🚪 Door is opening now...';
+      if (data.transaction_id) {
+        document.getElementById('statusMsg').innerHTML = `<div style="font-size:16px; margin-bottom: 12px;">✅ Payment Received!</div><div style="font-size:18px; font-weight:bold; color: var(--accent); margin-bottom: 12px;">🚪 DOOR OPENING...</div><small style="color:var(--text-dim); font-size:11px;">Transaction: ${data.transaction_id}<br/>Amount: RWF ${data.amount}</small>`;
+      } else {
+        document.getElementById('statusMsg').innerHTML = `<div style="font-size:16px; margin-bottom: 12px;">✅ Payment Received!</div><div style="font-size:18px; font-weight:bold; color: var(--accent);">🚪 DOOR OPENING...</div>`;
+      }
+      document.getElementById('statusMsg').style.color = 'var(--success)';
+      document.getElementById('mTitle').innerText = '🎉 Welcome!';
+
+      // Close after 10 seconds to allow reading
+      setTimeout(closeModal, 10000);
+    }
+
+  </script>
+</body>
+
+</html>

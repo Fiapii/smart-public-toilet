@@ -1,0 +1,513 @@
+# SMART PUBLIC TOILET - SYSTEM ARCHITECTURE
+
+## 🏗️ COMPLETE SYSTEM ARCHITECTURE
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                                                                         │
+│                    SMART PUBLIC TOILET SYSTEM                          │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│                          BACKEND SYSTEMS                               │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                         │
+│  ┌──────────────────┐      ┌──────────────────┐   ┌─────────────────┐ │
+│  │   Web Browser    │      │    Node.js       │   │    Database     │ │
+│  │  (index.html)    │◄────►│    Server        │◄─►│    (MySQL)      │ │
+│  │  Port: 80/443    │      │  Port: 5000      │   │                 │ │
+│  └──────────────────┘      └──────────────────┘   └─────────────────┘ │
+│         ▲                           ▲                      ▲            │
+│         │                           │                      │            │
+│      HTTP/HTTPS                  HTTP REST              SQL Queries    │
+│  (Payment form)              (API Endpoints)           (CRUD)          │
+│         │                           │                      │            │
+│         └───────────────────┬───────┴──────────────────────┘            │
+│                             │                                           │
+│                    ┌────────┴────────┐                                  │
+│                    │  PayPack API    │                                  │
+│                    │  (Payment)      │                                  │
+│                    └─────────────────┘                                  │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+              ▲                                           ▲
+              │                                           │
+         HTTP GET/POST                              HTTP GET/POST
+         Payment Status                             Log Events/Status
+              │                                           │
+              │          ┌───────────────────────┐        │
+              │          │   WiFi Connection     │        │
+              │          │   (2.4GHz Band)       │        │
+              │          └───────────────────────┘        │
+              │                      ▲                    │
+              │                      │                    │
+              └──────────┬───────────┴────────────────────┘
+                         │
+                         ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│                          ESP32 CONTROLLER                              │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                         │
+│  ┌───────────────────────────────────────────────────────────────────┐ │
+│  │                      ESP32 DevKit Board                          │ │
+│  │                                                                  │ │
+│  │  ┌────────────────────────────────────────────────────────────┐ │ │
+│  │  │              MAIN STATE MACHINE                           │ │ │
+│  │  │  ┌──────────┐  ┌─────────┐  ┌────────┐  ┌──────────────┐ │ │ │
+│  │  │  │  IDLE    │→ │OCCUPIED │→ │FLUSHING│→ │EXIT_OPENING  │ │ │ │
+│  │  │  └──────────┘  └─────────┘  └────────┘  └──────────────┘ │ │ │
+│  │  └────────────────────────────────────────────────────────────┘ │ │
+│  │                                                                  │ │
+│  │  ┌────────────────────────────────────────────────────────────┐ │ │
+│  │  │        EXTERNAL DEVICE INTERFACES                         │ │ │
+│  │  ├────────────────────────────────────────────────────────────┤ │ │
+│  │  │                                                            │ │ │
+│  │  │  INPUT DEVICES:                                           │ │ │
+│  │  │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐    │ │ │
+│  │  │  │   RFID        │  │  Ultrasonic  │  │  Ultrasonic  │    │ │ │
+│  │  │  │   Reader      │  │  Sensor #1   │  │  Sensor #2   │    │ │ │
+│  │  │  │  (Payment)    │  │  (Exit)      │  │  (Bowl)      │    │ │ │
+│  │  │  │  GPIO 4,5     │  │  GPIO 26,27  │  │  GPIO 13,12  │    │ │ │
+│  │  │  │  SPI: 18,19   │  │              │  │              │    │ │ │
+│  │  │  │       23      │  │              │  │              │    │ │ │
+│  │  │  └──────────────┘  └──────────────┘  └──────────────┘    │ │ │
+│  │  │                                                            │ │ │
+│  │  │  ┌──────────────┐                                        │ │ │
+│  │  │  │ Push Button  │                                        │ │ │
+│  │  │  │  (Manual)    │                                        │ │ │
+│  │  │  │  GPIO 14     │                                        │ │ │
+│  │  │  └──────────────┘                                        │ │ │
+│  │  │                                                            │ │ │
+│  │  │  OUTPUT DEVICES:                                          │ │ │
+│  │  │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐    │ │ │
+│  │  │  │  Servo #1    │  │  Servo #2    │  │   Relay      │    │ │ │
+│  │  │  │  (Door)      │  │  (Lid)       │  │  (Pump)      │    │ │ │
+│  │  │  │  GPIO 15     │  │  GPIO 33     │  │  GPIO 32     │    │ │ │
+│  │  │  │  PWM         │  │  PWM         │  │  Digital ON/OFF  │ │ │
+│  │  │  └──────────────┘  └──────────────┘  └──────────────┘    │ │ │
+│  │  │                                                            │ │ │
+│  │  │  ┌──────────────┐                                        │ │ │
+│  │  │  │   LED Green  │                                        │ │ │
+│  │  │  │  (Status)    │                                        │ │ │
+│  │  │  │  GPIO 22     │                                        │ │ │
+│  │  │  └──────────────┘                                        │ │ │
+│  │  │                                                            │ │ │
+│  │  └────────────────────────────────────────────────────────────┘ │ │
+│  │                                                                  │ │
+│  └───────────────────────────────────────────────────────────────────┘ │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+              ▲                           ▲                    ▲
+              │                           │                    │
+         5V Power                    GPIO Output            12V Power
+              │                           │                    │
+              ▼                           ▼                    ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│                        PHYSICAL HARDWARE                               │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                         │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐                │
+│  │ USB Power    │  │  5V Power    │  │  12V Power   │                │
+│  │ (ESP32)      │  │  (Sensors)   │  │  (Pump)      │                │
+│  │ 5V/500mA     │  │  5V/500mA    │  │  12V/2A      │                │
+│  └──────────────┘  └──────────────┘  └──────────────┘                │
+│         │                │                    │                        │
+│         └────────────┬────┴────────────────────┘                        │
+│                      │                                                   │
+│                      ▼                                                   │
+│  ┌─────────────────────────────────────────────────────────────────┐  │
+│  │                     BREADBOARD & WIRING                        │  │
+│  │                                                                │  │
+│  │  ┌──────┐     ┌──────┐      ┌──────┐      ┌──────┐            │  │
+│  │  │Servo │     │Servo │      │RFID  │      │US    │            │  │
+│  │  │ #1   │     │ #2   │      │Reader│      │Sensor│            │  │
+│  │  │(Door)│     │(Lid) │      │      │      │  #1  │            │  │
+│  │  │90°   │     │90°   │      │Cards │      │5cm   │            │  │
+│  │  └──────┘     └──────┘      └──────┘      └──────┘            │  │
+│  │     ▲             ▲             ▲             ▲                │  │
+│  │                                                                │  │
+│  │  ┌──────┐     ┌──────┐      ┌──────┐                          │  │
+│  │  │ Pump │     │Relay │      │Button│                          │  │
+│  │  │ 12V  │     │ 5V   │      │GPIO14│                          │  │
+│  │  │Motor │     │Click │      │Press │                          │  │
+│  │  └──────┘     └──────┘      └──────┘                          │  │
+│  │     ▲             ▲             ▲                             │  │
+│  │                                                                │  │
+│  │  ┌──────┐     ┌──────┐      ┌──────────────────────┐          │  │
+│  │  │LED   │     │US    │      │    VOLTAGE DIVIDERS  │          │  │
+│  │  │Green │     │Sensor│      │ For Echo pins (5V→3.3V)      │  │
+│  │  │Blink │     │ #2   │      │ GPIO27 & GPIO12      │          │  │
+│  │  └──────┘     │5cm   │      │ 1kΩ + 2kΩ resistors  │          │  │
+│  │               │Bowl  │      └──────────────────────┘          │  │
+│  │               └──────┘                                         │  │
+│  └─────────────────────────────────────────────────────────────────┘  │
+│                                                                         │
+│                   All devices connected via                           │
+│          Breadboard with common GND (critical!)                       │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+              ▲                          ▲                         ▲
+              │                          │                         │
+         Physical │                      │                         │
+         Toilet    │                      │                         │
+         Cabinet   │                  User Input              Output/Effects
+                   │                  (RFID, Payment,        (Water spray,
+             Mounting                 Button)                Door lock)
+             Points
+```
+
+---
+
+## 🔄 DATA FLOW DIAGRAM
+
+```
+USER INTERACTION:
+┌──────────┐
+│ User 1: │
+│ RFID Tap │
+└────┬─────┘
+     │
+     ▼
+┌──────────────────────────┐
+│ ESP32 reads RFID         │
+│ Converts UID to HEX      │
+└────┬─────────────────────┘
+     │
+     ▼
+┌──────────────────────────┐
+│ POST /api/rfid-tap       │
+│ WiFi → Server            │
+└────┬─────────────────────┘
+     │
+     ▼
+┌──────────────────────────┐
+│ Server checks database   │
+│ Card active?             │
+└────┬─────────────────────┘
+     │
+     ├─ YES ─► Response: "OPEN_DOOR" ─┐
+     └─ NO  ─► Response: "DENY"       │
+                                      │
+                                      ▼
+                          ┌──────────────────────────┐
+                          │ ESP32 receives response  │
+                          │ Updates state            │
+                          └────┬─────────────────────┘
+                               │
+                               ▼
+                          ┌──────────────────────────┐
+                          │ State → DOOR_OPENING     │
+                          │ Servo 1 → 90°            │
+                          │ Door physically opens    │
+                          └──────────────────────────┘
+
+
+USER INTERACTION:
+┌──────────┐
+│ User 2:  │
+│ Payment  │
+└────┬─────┘
+     │
+     ▼
+┌──────────────────────────┐
+│ Browser sends payment    │
+│ POST /api/payments       │
+└────┬─────────────────────┘
+     │
+     ▼
+┌──────────────────────────┐
+│ Server requests PayPack  │
+│ Sends USSD to phone      │
+└────┬─────────────────────┘
+     │
+     ▼
+┌──────────────────────────┐
+│ User enters PIN on phone │
+└────┬─────────────────────┘
+     │
+     ▼
+┌──────────────────────────┐
+│ PayPack confirms payment │
+│ to server DB             │
+└────┬─────────────────────┘
+     │
+     ▼
+┌──────────────────────────┐
+│ ESP32 polls every 2 sec  │
+│ GET /payment-check/1     │
+└────┬─────────────────────┘
+     │
+     ├─ No payment ─► Continue polling
+     │
+     └─ Payment confirmed ─► Response: "OPEN_DOOR"
+                                      │
+                                      ▼
+                          ┌──────────────────────────┐
+                          │ State → DOOR_OPENING     │
+                          │ Servo 1 → 90°            │
+                          │ Door opens               │
+                          └──────────────────────────┘
+
+
+SENSOR INTERACTION:
+┌──────────┐
+│ Person   │
+│ sits in  │
+│ toilet   │
+└────┬─────┘
+     │
+     ▼
+┌──────────────────────────┐
+│ US Sensor #2 detects     │
+│ < 5cm distance           │
+└────┬─────────────────────┘
+     │
+     ▼
+┌──────────────────────────┐
+│ State → LID_OPENING      │
+│ Servo 2 → 90°            │
+│ Lid opens                │
+└────┬─────────────────────┘
+     │
+     ▼
+┌──────────────────────────┐
+│ State → FLUSHING         │
+│ Relay ON                 │
+│ Pump motor on 5 sec      │
+└────┬─────────────────────┘
+     │
+     ▼
+┌──────────────────────────┐
+│ Pump stops               │
+│ State → LID_CLOSING      │
+│ Servo 2 → 0°             │
+│ Lid closes               │
+└────┬─────────────────────┘
+     │
+     ▼
+┌──────────────────────────┐
+│ State → OCCUPIED         │
+│ Waiting for exit         │
+└──────────────────────────┘
+```
+
+---
+
+## 📊 SIGNAL FLOW SUMMARY
+
+```
+INPUT SIGNALS (To ESP32):
+├─ RFID Reader (SPI)
+│  └─ SPI bus: CLK, MOSI, MISO, CS
+│  └─ GPIO: RST, INT
+│
+├─ Ultrasonic Sensor #1 (Exit)
+│  └─ GPIO 26: Trigger pulse (5V TTL)
+│  └─ GPIO 27: Echo return (5V→3.3V via divider)
+│
+├─ Ultrasonic Sensor #2 (Bowl)
+│  └─ GPIO 13: Trigger pulse (5V TTL)
+│  └─ GPIO 12: Echo return (5V→3.3V via divider)
+│
+├─ Push Button
+│  └─ GPIO 14: Digital input (pull-up to 3.3V)
+│
+└─ WiFi
+   └─ Antenna: 2.4GHz 802.11 b/g/n
+
+
+OUTPUT SIGNALS (From ESP32):
+├─ Servo Motor 1 (Door)
+│  └─ GPIO 15: PWM signal (50Hz)
+│  └─ 0° = 1000µs, 90° = 1500µs, 180° = 2000µs
+│
+├─ Servo Motor 2 (Lid)
+│  └─ GPIO 33: PWM signal (50Hz)
+│  └─ 0° = 1000µs, 90° = 1500µs, 180° = 2000µs
+│
+├─ Relay Control
+│  └─ GPIO 32: Digital output
+│  └─ LOW = Relay ON (pump on)
+│  └─ HIGH = Relay OFF (pump off)
+│
+├─ LED Status
+│  └─ GPIO 22: Digital output
+│  └─ HIGH = LED ON
+│  └─ LOW = LED OFF
+│
+└─ WiFi
+   └─ HTTP requests to Node.js server
+
+
+POWER SUPPLIES:
+├─ 5V Rail
+│  ├─ ESP32 (USB)
+│  ├─ Servos (x2)
+│  ├─ Sensors (x2)
+│  ├─ Relay module
+│  ├─ LED (+resistor)
+│  └─ RFID (3.3V)
+│
+└─ 12V Rail
+   ├─ Pump motor
+   └─ (GND shared with 5V system!)
+
+
+CRITICAL CONNECTIONS:
+├─ Common Ground
+│  ├─ ESP32 GND = 5V GND = 12V GND
+│  └─ All devices must share GND
+│
+├─ Voltage Dividers
+│  ├─ US1 Echo: 5V→3.3V
+│  └─ US2 Echo: 5V→3.3V
+│
+└─ Power Protection
+   ├─ Relay isolated high-voltage circuit
+   ├─ PWM signals buffered from logic
+   └─ Input signals protected with dividers
+```
+
+---
+
+## ⚡ POWER DELIVERY DIAGRAM
+
+```
+5V POWER TREE:
+┌─────────────────┐
+│  USB 5V Power   │
+│  (500mA min)    │
+└────────┬────────┘
+         │
+    ┌────▼─────────────────────────────────┐
+    │      5V Power Rail (Breadboard)      │
+    └────┬───────┬───────┬───────┬────────┘
+         │       │       │       │
+    ┌────▼──┐ ┌──▼───┐ ┌─▼────┐ │
+    │Servo 1│ │Servo │ │Relay │ │
+    │       │ │ #2   │ │Module│ │
+    │~200mA │ │~200mA│ │~80mA │ │
+    └───────┘ └──────┘ └──────┘ │
+                                 │
+                            ┌────▼──────┐
+                            │ US Sensors│
+                            │ (x2)      │
+                            │ ~30mA     │
+                            └───────────┘
+
+
+3.3V POWER TREE:
+┌─────────────────┐
+│ ESP32 3V3 Out   │
+│ (100mA limit)   │
+└────────┬────────┘
+         │
+    ┌────▼──────────────────────┐
+    │  3.3V Power Rail          │
+    └────┬────────┬─────────────┘
+         │        │
+    ┌────▼──┐ ┌───▼───┐
+    │ RFID  │ │ LED   │
+    │Reader │ │(+R)   │
+    │~50mA  │ │~20mA  │
+    └───────┘ └───────┘
+
+
+12V POWER TREE (Separate Supply):
+┌─────────────────┐
+│   12V Power     │
+│   (2A min)      │
+└────────┬────────┘
+         │
+    ┌────▼──────────────────┐
+    │  12V Power Rail       │
+    └────┬──────────────────┘
+         │
+    ┌────▼────────────┐
+    │  Water Pump     │
+    │  Motor          │
+    │  ~500-2000mA    │
+    └─────────────────┘
+    
+⚠️ CRITICAL: 12V GND must connect to 5V GND!
+```
+
+---
+
+## 🎯 COMPONENT RESPONSIBILITY MATRIX
+
+```
+COMPONENT          │  GPIO  │ SIGNAL TYPE │ VOLTAGE │ PURPOSE
+───────────────────┼────────┼─────────────┼─────────┼──────────────────
+ESP32 Board        │ N/A    │ Control     │ 3.3V    │ Main controller
+───────────────────┼────────┼─────────────┼─────────┼──────────────────
+Servo 1 (Door)     │ 15     │ PWM 50Hz    │ 5V      │ Entry door control
+Servo 2 (Lid)      │ 33     │ PWM 50Hz    │ 5V      │ Lid control
+───────────────────┼────────┼─────────────┼─────────┼──────────────────
+US Sensor 1 Exit   │ 26/27  │ Pulse (5V)  │ 5V in   │ Exit detection
+US Sensor 2 Bowl   │ 13/12  │ Pulse (5V)  │ 5V in   │ Bowl detection
+───────────────────┼────────┼─────────────┼─────────┼──────────────────
+RFID Reader        │ 4/5    │ SPI (3.3V)  │ 3.3V    │ Card payment
+              (18/19/23) │ │
+───────────────────┼────────┼─────────────┼─────────┼──────────────────
+Push Button        │ 14     │ Digital     │ 3.3V    │ Manual exit
+───────────────────┼────────┼─────────────┼─────────┼──────────────────
+LED Green          │ 22     │ Digital     │ 3.3V    │ Status indicator
+───────────────────┼────────┼─────────────┼─────────┼──────────────────
+Relay Module       │ 32     │ Digital     │ 5V in   │ Pump control
+───────────────────┼────────┼─────────────┼─────────┼──────────────────
+Water Pump         │ Relay  │ DC Motor    │ 12V     │ Flush mechanism
+───────────────────┼────────┼─────────────┼─────────┼──────────────────
+WiFi Connection    │ N/A    │ 802.11 b/g/n│ 3.3V    │ Internet link
+```
+
+---
+
+## 🔐 SAFETY FEATURES
+
+```
+HARDWARE PROTECTION:
+├─ Voltage Dividers
+│  └─ Prevents 5V from damaging 3.3V GPIO pins
+│
+├─ Relay Isolation
+│  └─ Separates high-current pump from microcontroller
+│
+├─ Series Resistor on LED
+│  └─ Prevents overcurrent to GPIO pin
+│
+├─ Button Pull-up
+│  └─ Prevents floating pin noise
+│
+└─ Servo Power Separation
+   └─ Servos powered directly from supply, not from GPIO
+
+
+SOFTWARE PROTECTION:
+├─ State Machine Failsafe
+│  └─ Max 20-minute stuck state timeout
+│
+├─ Pump Watchdog
+│  └─ Max 6-second continuous pump run
+│
+├─ RFID Cooldown
+│  └─ Prevents double-triggering within 3 seconds
+│
+├─ Button Debounce
+│  └─ Filters mechanical noise, 25ms + 500ms cooldown
+│
+├─ Sensor Averaging
+│  └─ Takes median of 5 ultrasonic readings
+│
+└─ WiFi Timeout
+   └─ Graceful degradation if network unavailable
+```
+
+This comprehensive system is designed to be:
+- **Reliable**: Multiple redundancy and failsafes
+- **Safe**: Proper voltage protection and isolation
+- **Scalable**: Can handle multiple toilet units
+- **Maintainable**: Clean state machine architecture
+- **Debuggable**: Extensive Serial output for troubleshooting
+

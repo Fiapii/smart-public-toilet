@@ -1,0 +1,1883 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PUBLIC TOILET — Management System</title>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Syne:wght@500;600;700;800&display=swap"
+    rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .toast-error {
+      position: fixed;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: linear-gradient(135deg, #ef4444, #dc2626);
+      color: white;
+      padding: 14px 28px;
+      border-radius: 50px;
+      font-size: 14px;
+      font-weight: 600;
+      z-index: 10000;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+      animation: toastSlide 0.3s ease;
+    }
+
+    .toast-success {
+      background: linear-gradient(135deg, #10b981, #059669);
+    }
+
+    @keyframes toastSlide {
+      from {
+        opacity: 0;
+        transform: translateX(-50%) translateY(20px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+      }
+    }
+
+    /* Chat unread badge */
+    .chat-contact {
+      position: relative;
+    }
+
+    .unread-badge {
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: #ef4444;
+      color: white;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 20px;
+      min-width: 22px;
+      text-align: center;
+      box-shadow: 0 0 0 2px var(--bg2);
+    }
+
+    .nav-badge {
+      background: #ef4444;
+      color: white;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 20px;
+      margin-left: auto;
+    }
+
+    .msg-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 4px;
+      font-size: 10px;
+      opacity: 0.8;
+    }
+    .msg-action-btn {
+      background: none;
+      border: none;
+      color: var(--ink3);
+      padding: 0;
+      cursor: pointer;
+      font-weight: 600;
+      text-decoration: underline;
+    }
+    .msg-action-btn:hover { color: var(--accent-light); }
+  </style>
+</head>
+
+<body>
+
+  <!-- LOGIN SCREEN -->
+  <div class="screen active" id="loginScreen">
+    <div class="login-card">
+      <div class="login-header">Login to Public Toilet</div>
+      <div class="role-tabs">
+        <button class="role-tab active" onclick="setRole('superadmin', this)">Admin</button>
+        <button class="role-tab" onclick="setRole('owner', this)">Owner</button>
+        <button class="role-tab" onclick="setRole('cleaner', this)">Cleaner</button>
+      </div>
+      <div class="form-field">
+        <label>Select or Enter Email</label>
+        <input type="email" id="loginUser" list="emailList" placeholder="your@email.com" />
+        <datalist id="emailList"></datalist>
+      </div>
+      <div class="form-field" style="position:relative;">
+        <label>Password</label>
+        <div style="position:relative;">
+          <input type="password" id="loginPass" placeholder="••••••" value="password123" />
+          <span class="password-toggle" onclick="togglePass('loginPass')"
+            style="cursor:pointer; font-size:12px; color:var(--ink3); position:absolute; right:12px; top:50%; transform:translateY(-50%);">👁️</span>
+        </div>
+      </div>
+      <button class="btn-primary" onclick="doLogin()">Sign In</button>
+      <div style="display:flex; justify-content:space-between; margin-top:12px;">
+        <a class="forgot-link" onclick="showForgot()">Forgot password?</a>
+        <a class="forgot-link" id="regLink" style="display:none;" onclick="showRegister()">Register New Admin</a>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- FORGOT PASSWORD SCREEN -->
+  <div class="screen" id="forgotScreen">
+    <div class="login-card">
+      <div class="login-logo">PUBLIC TOILET</div>
+      <div class="login-sub" style="margin-bottom:28px;">Reset your password</div>
+      <div class="field-group"><label>Email address</label><input type="email" id="resetEmail"
+          placeholder="your@gmail.com" /></div>
+      <div class="field-group"><label>Secret Word</label><input type="text" id="resetSecret"
+          placeholder="Enter your secret word" /></div>
+      <div class="field-group"><label>New Password</label><input type="password" id="resetNewPass"
+          placeholder="Enter new password" /></div>
+      <button class="btn-primary" onclick="doReset()">Update Password</button>
+      <div class="success-msg" id="resetSuccess">✓ Password updated successfully!</div>
+    </div>
+    <span class="back-link" onclick="showLogin()">← Back to login</span>
+  </div>
+
+  <!-- REGISTER SCREEN -->
+  <div class="screen" id="registerScreen">
+    <div class="login-card">
+      <div class="login-logo">PUBLIC TOILET</div>
+      <div class="login-sub">Create Super Admin Account</div>
+      <div class="field-group"><label>Full Name</label><input type="text" id="regName"
+          placeholder="Enter your full name" /></div>
+      <div class="field-group"><label>Email Address</label><input type="email" id="regEmail"
+          placeholder="admin@gmail.com" /></div>
+      <div class="field-group"><label>Password</label><input type="password" id="regPass" placeholder="•••••••" /></div>
+      <div class="field-group"><label>Secret Word (for recovery)</label><input type="text" id="regSecret" placeholder="e.g. My Favorite City" /></div>
+      <input type="hidden" id="regRole" value="Admin" />
+      <button class="btn-primary" onclick="doRegister()">Create Admin Account</button>
+    </div>
+    <span class="back-link" onclick="showLogin()">← Back to login</span>
+  </div>
+
+  <!-- MAIN APP SCREEN -->
+  <div class="screen" id="appScreen">
+    <aside class="sidebar">
+      <div class="sidebar-logo">PUBLIC TOILET <span>⬡</span></div>
+      <div class="sidebar-role" id="sidebarRole">Owner Portal</div>
+      <div class="sidebar-user" id="sidebarUser">Mugisha Jean</div>
+      <div class="sidebar-nav-scroll">
+        <div id="ownerNav">
+          <div class="nav-section">Overview</div>
+          <button class="nav-item active" onclick="showPage('dashboard', this)"><i
+              class="fas fa-tachometer-alt icon"></i> Dashboard</button>
+          <button class="nav-item" onclick="showPage('toilets', this)"><i class="fas fa-restroom icon"></i>
+            Toilets</button>
+          <div class="nav-section">Finance</div>
+          <button class="nav-item" onclick="showPage('revenue', this)"><i class="fas fa-dollar-sign icon"></i>
+            Revenue</button>
+          <button class="nav-item" onclick="showPage('transactions', this)"><i class="fas fa-receipt icon"></i>
+            Transactions</button>
+          <div class="nav-section">Operations</div>
+          <button class="nav-item" onclick="showPage('cleaners', this)"><i class="fas fa-users icon"></i>
+            Cleaners</button>
+          <button class="nav-item" onclick="showPage('chat', this, 'Admin')"><i class="fas fa-comments icon"></i> Chat
+            with Admin</button>
+          <button class="nav-item" onclick="showPage('chat', this, 'Cleaner')"><i class="fas fa-comments icon"></i> Chat
+            with Cleaner</button>
+          <button class="nav-item" onclick="showPage('complaints', this)"><i class="fas fa-exclamation-circle icon"></i>
+            Complaints <span class="nav-badge" id="compBadge" style="display:none;">0</span></button>
+          <button class="nav-item" onclick="showPage('sensorComplaints', this)"><i class="fas fa-microchip icon"></i>
+            Sensors Complaints</button>
+          <button class="nav-item" onclick="showPage('reports', this)"><i class="fas fa-chart-bar icon"></i>
+            Reports</button>
+          <div class="nav-section">IoT Hardware</div>
+          <button class="nav-item" id="navIotEvents" onclick="showPage('iotEvents', this)"><i class="fas fa-broadcast-tower icon"></i>
+            Live Events <span class="nav-badge" id="iotEventBadge" style="display:none;">NEW</span></button>
+          <button class="nav-item" onclick="showPage('rfidCards', this)"><i class="fas fa-id-card icon"></i>
+            RFID Cards</button>
+          <div class="nav-section">Settings</div>
+          <button class="nav-item" onclick="showPage('settings', this)"><i class="fas fa-cog icon"></i>
+            Settings</button>
+        </div>
+        <div id="cleanerNav" style="display:none;">
+          <div class="nav-section">My Work</div>
+          <button class="nav-item active" onclick="showPage('cleanerDash', this)"><i
+              class="fas fa-tachometer-alt icon"></i> Dashboard</button>
+          <button class="nav-item" onclick="showPage('cleanerToilets', this)"><i class="fas fa-restroom icon"></i> My
+            Toilets</button>
+          <button class="nav-item" onclick="showPage('complaints', this)"><i class="fas fa-exclamation-circle icon"></i>
+            Complaints</button>
+          <button class="nav-item" onclick="showPage('sensorComplaints', this)"><i class="fas fa-microchip icon"></i>
+            Sensors Complaints</button>
+          <button class="nav-item" onclick="showPage('chat', this)"><i class="fas fa-comments icon"></i> Chat with
+            Owner</button>
+          <div class="nav-section">Settings</div>
+          <button class="nav-item" onclick="showPage('settings', this)"><i class="fas fa-cog icon"></i>
+            Settings</button>
+        </div>
+        <div id="superNav" style="display:none;">
+          <div class="nav-section">Management</div>
+          <button class="nav-item" onclick="showPage('superDash', this)"><i class="fas fa-tachometer-alt icon"></i>
+            Dashboard</button>
+          <button class="nav-item" onclick="showPage('owners', this)"><i class="fas fa-users icon"></i> Manage
+            Owners</button>
+          <button class="nav-item" onclick="showPage('chat', this)"><i class="fas fa-comments icon"></i> Chat with
+            Owners</button>
+          <button class="nav-item" onclick="showPage('systemReports', this)"><i class="fas fa-chart-line icon"></i>
+            System Reports</button>
+          <div class="nav-section">Settings</div>
+          <button class="nav-item" onclick="showPage('settings', this)"><i class="fas fa-cog icon"></i>
+            Settings</button>
+        </div>
+      </div>
+      <div class="sidebar-footer">
+        <button class="logout-btn" onclick="doLogout()"><i class="fas fa-sign-out-alt"></i> Sign Out</button>
+      </div>
+    </aside>
+
+    <main class="main">
+      <div class="topbar">
+        <div style="display:flex;align-items:center;gap:15px;">
+          <button class="notif-btn menu-toggle" style="display:none;" onclick="toggleSidebar()"><i class="fas fa-bars"></i></button>
+          <div class="topbar-title" id="pageTitle">Dashboard</div>
+        </div>
+        <div class="topbar-actions">
+          <button class="notif-btn" onclick="handleNotificationClick()">🔔<span class="notif-dot" id="notifBadge"
+              style="display:none;"></span><span id="notifCount"
+              style="font-size:10px;position:absolute;top:-5px;right:-5px;background:var(--red);color:white;border-radius:50%;padding:2px 5px;display:none;">0</span></button>
+          <div class="avatar" id="userAvatar">MJ</div>
+        </div>
+      </div>
+
+      <!-- OWNER DASHBOARD -->
+      <div class="page active" id="page-dashboard">
+        <div id="broadcastBanner" class="alert-banner" style="display:none;">
+          <span class="alert-icon">📢</span>
+          <strong>Message from Admin:</strong>&nbsp; <span id="broadcastMessageText"></span>
+          <button class="btn-sm btn-dismiss" style="margin-left:auto;"
+            onclick="this.parentElement.style.display='none'">Dismiss</button>
+        </div>
+        <div id="alertBanner" class="alert-banner">
+          <span class="alert-icon">⚠</span>
+          <strong>Alert:</strong>&nbsp; Toilet #3 — Odor level high. Cleaner notified automatically.
+          <button class="btn-sm btn-dismiss" onclick="this.parentElement.style.display='none'">Dismiss</button>
+        </div>
+        <div class="grid-4 stats-grid">
+          <div class="stat-card">
+            <h3>Total Revenue</h3>
+            <div class="stat-number" id="ownerTotalRev">—</div>
+          </div>
+          <div class="stat-card">
+            <h3>Total Complaints</h3>
+            <div class="stat-number" id="ownerTotalComplaints">—</div>
+          </div>
+          <div class="stat-card">
+            <h3>Active Toilets</h3>
+            <div class="stat-number" id="ownerTotalToilets">—</div>
+          </div>
+          <div class="stat-card">
+            <h3>Cleaners On Duty</h3>
+            <div class="stat-number" id="ownerTotalCleaners">—</div>
+          </div>
+        </div>
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-title">Revenue by Payment Method</div>
+            <div class="bar-chart" id="revenueChart"></div>
+          </div>
+          <div class="card">
+            <div class="card-title">Live Toilet Status</div>
+            <div id="miniToiletGrid"></div>
+          </div>
+        </div>
+        <!-- IoT Real-time strip on dashboard -->
+        <div class="grid-2" style="margin-top:20px;">
+          <div class="card" style="border-left:3px solid var(--accent);">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+              <div class="card-title" style="margin:0;">🔴 Live Sensor Events</div>
+              <span id="iotLiveDot" style="width:10px;height:10px;border-radius:50%;background:#ef4444;display:inline-block;animation:pulse 1.4s infinite;"></span>
+            </div>
+            <div id="dashboardEventsFeed" style="max-height:220px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;">
+              <div style="color:var(--ink3);font-size:13px;text-align:center;padding:20px;">Connecting to live feed...</div>
+            </div>
+          </div>
+          <div class="card" style="border-left:3px solid #10b981;">
+            <div class="card-title">💳 RFID Card Stats</div>
+            <div id="dashboardRfidStats" style="display:flex;flex-direction:column;gap:10px;">
+              <div style="display:flex;justify-content:space-between;"><span style="color:var(--ink3);">Registered Cards</span><strong id="rfidCardCount">—</strong></div>
+              <div style="display:flex;justify-content:space-between;"><span style="color:var(--ink3);">Last Tap</span><strong id="rfidLastTap" style="font-size:12px;">—</strong></div>
+              <div style="display:flex;justify-content:space-between;"><span style="color:var(--ink3);">Last Payment</span><strong id="rfidLastPayment">—</strong></div>
+              <button class="btn-add" style="width:100%;margin-top:8px;" onclick="showPage('rfidCards', null)">Manage RFID Cards →</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- IOT LIVE EVENTS PAGE -->
+      <div class="page" id="page-iotEvents">
+        <div class="grid-3" style="margin-bottom:20px;">
+          <div class="stat-card">
+            <div class="stat-icon">🚪</div>
+            <div class="stat-label">Door Events Today</div>
+            <div class="stat-val" id="iotDoorCount">0</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">💳</div>
+            <div class="stat-label">RFID Taps Today</div>
+            <div class="stat-val" id="iotRfidCount">0</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">💧</div>
+            <div class="stat-label">Flushes Today</div>
+            <div class="stat-val" id="iotFlushCount">0</div>
+          </div>
+        </div>
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+            <div class="card-title" style="margin:0;">Hardware Event Log</div>
+            <div style="display:flex;gap:10px;align-items:center;">
+              <select id="iotToiletFilter" onchange="loadIotEvents()" style="padding:6px 12px;border-radius:8px;border:1px solid var(--border);background:var(--bg2);color:var(--ink1);font-size:13px;">
+                <option value="all">All Toilets</option>
+              </select>
+              <span id="iotStreamDot" style="width:10px;height:10px;border-radius:50%;background:#10b981;display:inline-block;animation:pulse 1.4s infinite;" title="Live stream active"></span>
+              <span style="font-size:12px;color:var(--ink3);">LIVE</span>
+            </div>
+          </div>
+          <div id="iotEventsList" style="max-height:500px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;">
+            <div style="text-align:center;padding:32px;color:var(--ink3);">Loading events...</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RFID CARDS PAGE -->
+      <div class="page" id="page-rfidCards">
+        <div style="display:flex;justify-content:space-between;margin-bottom:24px;">
+          <div style="font-size:13px;color:var(--ink3);">Register physical RFID cards and manage balances</div>
+          <button class="btn-add" onclick="openModal('addRfidCardModal')">+ Register Card</button>
+        </div>
+        <div class="card">
+          <div class="card-title">Registered RFID Cards</div>
+          <div id="rfidCardsList"></div>
+        </div>
+      </div>
+
+      <!-- TOILETS PAGE -->
+      <div class="page" id="page-toilets">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;">
+          <div>
+            <div style="font-size:13px;color:var(--ink3);">Monitoring all toilet units in real-time</div>
+          </div>
+          <button class="btn-add" onclick="openModal('addToiletModal')">+ Add Toilet</button>
+        </div>
+        <div class="toilet-grid" id="mainToiletGrid"></div>
+      </div>
+
+      <!-- REVENUE PAGE -->
+      <div class="page" id="page-revenue">
+        <div class="grid-3">
+          <div class="stat-card">
+            <div class="stat-label">Total Revenue (Month)</div>
+            <div><span class="rev-currency">RWF</span><span class="rev-big" id="revTotalMonth">—</span></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Paid Transactions</div>
+            <div><span class="rev-big" id="revPaidCount">—</span></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Failed / Pending</div>
+            <div><span class="rev-big" id="revFailedCount">—</span></div>
+          </div>
+        </div>
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;margin-bottom:16px;">
+            <div class="card-title">Transaction History</div><button class="btn-add"
+              onclick="generateReport('revenue')">📥 Download CSV</button>
+          </div>
+          <div id="transactionsTableWrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Txn ID</th>
+                  <th>Date / Time</th>
+                  <th>Toilet</th>
+                  <th>Phone</th>
+                  <th>Amount</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="transactionsTableBody">
+                <tr>
+                  <td colspan="6" style="text-align:center;padding:32px;">Loading transactions...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- TRANSACTIONS PAGE -->
+      <div class="page" id="page-transactions">
+        <div class="card">
+          <div class="card-title">All Transactions</div>
+          <div id="allTransactionsList"></div>
+        </div>
+      </div>
+
+      <!-- CLEANERS PAGE -->
+      <div class="page" id="page-cleaners">
+        <div style="display:flex;justify-content:space-between;margin-bottom:24px;">
+          <div style="font-size:13px;color:var(--ink3);">Manage your cleaning staff</div><button class="btn-add"
+            onclick="openModal('addCleanerModal')">+ Add Cleaner</button>
+        </div>
+        <div class="card">
+          <div class="card-title">Active Cleaners</div>
+          <div id="cleanersList"></div>
+        </div>
+      </div>
+
+      <!-- CHAT PAGE -->
+      <div class="page" id="page-chat">
+        <div class="grid-2">
+          <div>
+            <div class="card" style="padding:0;overflow:hidden;">
+              <div
+                style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;">
+                <div id="chatHeaderAvatar"
+                  style="width:36px;height:36px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;color:white;font-weight:600;">
+                  —</div>
+                <div>
+                  <div id="chatHeaderName" style="font-weight:600;">Select a contact</div>
+                  <div id="chatHeaderRole" style="font-size:11px;color:var(--ink3);">—</div>
+                </div>
+              </div>
+              <div class="chat-container">
+                <div class="chat-messages" id="chatMessages">
+                  <div style="text-align:center;padding:20px;">Select a contact to start chatting</div>
+                </div>
+                <div class="chat-input-row"><input class="chat-input" id="chatInput" placeholder="Type a message..."
+                    onkeypress="if(event.key==='Enter')sendChat()" /><button class="send-btn" id="sendChatBtn"
+                    onclick="sendChat()">Send</button></div>
+              </div>
+            </div>
+          </div>
+          <div>
+            <div class="card">
+              <div class="card-title">All Conversations</div>
+              <div id="chatContactsList"></div>
+            </div>
+            <div class="card" style="margin-top:16px;">
+              <div class="card-title">Quick Broadcast</div><textarea id="broadcastQuickMsg"
+                placeholder="Send a message to ALL cleaners at once..."></textarea><button class="btn-add"
+                style="width:100%;margin-top:10px;" onclick="sendBroadcast()">Send Broadcast</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- COMPLAINTS PAGE -->
+      <div class="page" id="page-complaints">
+        <div class="grid-3">
+          <div class="stat-card">
+            <div class="stat-label">Open</div>
+            <div class="stat-val" style="color:var(--red);" id="openComplaintsCount">0</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Resolved Today</div>
+            <div class="stat-val" style="color:var(--green);" id="resolvedComplaintsCount">0</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Avg. Response Time</div>
+            <div class="stat-val">4.2m</div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">Client Complaints</div>
+          <div id="complaintsList"></div>
+        </div>
+      </div>
+
+      <!-- SENSOR COMPLAINTS PAGE -->
+      <div class="page" id="page-sensorComplaints">
+        <div class="grid-3">
+          <div class="stat-card">
+            <div class="stat-label">Open Sensor Alerts</div>
+            <div class="stat-val" style="color:var(--yellow);" id="openSensorCount">0</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Resolved Today</div>
+            <div class="stat-val" style="color:var(--green);" id="resolvedSensorCount">0</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">System Health</div>
+            <div class="stat-val">98%</div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">IoT Sensor Alerts</div>
+          <div id="sensorComplaintsList"></div>
+        </div>
+      </div>
+
+      <!-- REPORTS PAGE -->
+      <div class="page" id="page-reports">
+        <div class="card">
+          <div class="card-title">Generate Reports</div><button class="btn-add"
+            onclick="generateReport('custom')">Generate Report</button>
+        </div>
+        <div class="card" style="margin-top:20px;">
+          <div class="card-title">Recent System Reports</div>
+          <table>
+            <thead>
+              <tr>
+                <th>Report</th>
+                <th>Period</th>
+                <th>Generated</th>
+                <th>Download</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Revenue Summary</td>
+                <td>April 2026</td>
+                <td>Today</td>
+                <td><button class="btn-sm btn-resolve" onclick="generateReport('revenue')">↓ CSV</button></td>
+              </tr>
+              <tr>
+                <td>Usage Statistics</td>
+                <td>April 2026</td>
+                <td>Today</td>
+                <td><button class="btn-sm btn-resolve" onclick="generateReport('toilets')">↓ CSV</button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- SETTINGS PAGE -->
+      <div class="page" id="page-settings">
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-title">Profile Settings</div>
+            <div class="field-group"><label>Full Name</label><input type="text" id="settingsName" /></div>
+            <div class="field-group"><label>Email Address</label><input type="email" id="settingsEmail" /></div>
+            <div class="field-group"><label>Secret Word (for recovery)</label><input type="text" id="settingsSecret" placeholder="e.g. My Favorite City" /></div>
+            <div class="field-group"><label>Confirm with Current Password</label><input type="password"
+                id="settingsProfilePass" placeholder="••••••••" /></div>
+            <button class="btn-primary" onclick="updateProfile()">Save Profile Changes</button>
+          </div>
+          <div class="card">
+            <div class="card-title">Security & Password</div>
+            <div class="field-group"><label>Current Password</label><input type="password" id="settingsOldPass"
+                placeholder="••••••••" /></div>
+            <div class="field-group"><label>New Password</label><input type="password" id="settingsNewPass"
+                placeholder="••••••••" /></div>
+            <div class="field-group"><label>Confirm New Password</label><input type="password" id="settingsConfirmPass"
+                placeholder="••••••••" /></div>
+            <button class="btn-primary" onclick="updatePassword()">Update Password</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- CLEANER DASHBOARD -->
+      <div class="page" id="page-cleanerDash">
+        <div class="grid-4">
+          <div class="stat-card">
+            <div class="stat-icon">⚠</div>
+            <div class="stat-label">Active Alerts</div>
+            <div class="stat-val" id="cleanerAlertCount">0</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">✅</div>
+            <div class="stat-label">Total Assigned Toilets</div>
+            <div class="stat-val" id="cleanerToiletCount">0</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">📋</div>
+            <div class="stat-label">My Open Complaints</div>
+            <div class="stat-val" id="cleanerOpenComplaints">0</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">🚻</div>
+            <div class="stat-label">Daily Revenue</div>
+            <div class="stat-val" id="cleanerRevToday">0</div>
+          </div>
+        </div>
+        <div id="cleanerBroadcastBanner" class="alert-banner" style="display:none;">
+          <span class="alert-icon">📢</span>
+          <strong id="cleanerBroadcastTitle">Message:</strong>&nbsp; <span id="cleanerBroadcastText"></span>
+          <button class="btn-sm btn-dismiss" style="margin-left:auto;" onclick="this.parentElement.style.display='none'">Dismiss</button>
+        </div>
+        <div id="cleanerAlertBanner" class="alert-banner" style="display:none;"><span class="alert-icon">⚠</span><strong
+            id="cleanerAlertText">Action Needed:</strong></div>
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-title">My Assigned Toilets</div>
+            <div class="toilet-grid" id="cleanerToiletGrid"></div>
+          </div>
+          <div class="card">
+            <div class="card-title">Recent Complaints</div>
+            <div id="cleanerMiniComplaints"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CLEANER TOILETS -->
+      <div class="page" id="page-cleanerToilets">
+        <div class="card">
+          <div class="card-title">My Toilet Status</div>
+          <div class="toilet-grid" id="cleanerToiletGrid2"></div>
+        </div>
+      </div>
+
+      <!-- SUPER ADMIN DASHBOARD -->
+      <div class="page" id="page-superDash">
+        <div class="grid-4">
+          <div class="stat-card">
+            <div class="stat-icon">👥</div>
+            <div class="stat-label">Total Owners</div>
+            <div class="stat-val" id="superTotalOwners">—</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">💰</div>
+            <div class="stat-label">System Revenue</div>
+            <div class="stat-val" id="superTotalRev">—</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">🚻</div>
+            <div class="stat-label">Total Toilets</div>
+            <div class="stat-val" id="superTotalToilets">—</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">🧹</div>
+            <div class="stat-label">Active Cleaners</div>
+            <div class="stat-val" id="superTotalCleaners">—</div>
+          </div>
+        </div>
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;margin-bottom:16px;">
+            <div class="card-title">Owner Revenue Overview</div><button class="btn-sm"
+              onclick="openModal('broadcastModal')">📢 Broadcast Message</button>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Owner</th>
+                <th>Toilets</th>
+                <th>Total Revenue</th>
+                <th>Cleaners</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="ownersTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- OWNERS PAGE -->
+      <div class="page" id="page-owners">
+        <div style="display:flex;justify-content:space-between;margin-bottom:24px;">
+          <div style="font-size:13px;color:var(--ink3);">Create and manage owner accounts</div><button class="btn-add"
+            onclick="openModal('addOwnerModal')">+ Create Owner Account</button>
+        </div>
+        <div id="ownersList"></div>
+      </div>
+
+      <!-- SYSTEM REPORTS -->
+      <div class="page" id="page-systemReports">
+        <div class="card">
+          <div class="card-title">System-wide Performance</div>
+          <table>
+            <thead>
+              <tr>
+                <th>Metric</th>
+                <th>This Month</th>
+                <th>Last Month</th>
+                <th>Change</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Total Revenue</td>
+                <td>12,400,000 RWF</td>
+                <td>10,200,000 RWF</td>
+                <td><span class="badge badge-green">+21.6%</span></td>
+              </tr>
+              <tr>
+                <td>Total Clients Served</td>
+                <td>62,400</td>
+                <td>51,200</td>
+                <td><span class="badge badge-green">+21.9%</span></td>
+              </tr>
+              <tr>
+                <td>Average Cleanliness Rating</td>
+                <td>4.3 / 5</td>
+                <td>4.1 / 5</td>
+                <td><span class="badge badge-green">+0.2</span></td>
+              </tr>
+              <tr>
+                <td>Payment Failure Rate</td>
+                <td>1.2%</td>
+                <td>2.4%</td>
+                <td><span class="badge badge-green">-1.2%</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- MODALS -->
+  <div class="modal-overlay" id="addCleanerModal">
+    <div class="modal">
+      <div class="modal-title">Add New Cleaner</div>
+      <div class="form-field"><label>Full Name</label><input type="text" id="cleanerName" /></div>
+      <div class="form-field"><label>Email Address</label><input type="email" id="cleanerEmail" /></div>
+      <div class="form-field"><label>Phone Number</label><input type="tel" id="cleanerPhone" /></div>
+      <div class="form-field"><label>Assign Toilet</label><select id="cleanerToilet">
+          <option>Kigali CBD #1</option>
+          <option>Airport #1</option>
+        </select></div>
+      <div class="form-field"><label>Temporary Password</label><input type="password" id="cleanerPass" /></div>
+      <div class="form-field"><label>Secret Word (for recovery)</label><input type="text" id="cleanerSecret" value="SmartLoo" /></div>
+      <div class="modal-actions"><button class="btn-cancel"
+          onclick="closeModal('addCleanerModal')">Cancel</button><button class="btn-add" onclick="addCleaner()">Create
+          Account</button></div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="addToiletModal">
+    <div class="modal">
+      <div class="modal-title">Register New Toilet</div>
+      <div class="form-field"><label>Toilet Name / Location</label><input type="text" id="toiletLoc" /></div>
+      <div class="form-field"><label>Assign Cleaner</label><select id="toiletCleanerSelect">
+          <option value="">Unassigned</option>
+        </select></div>
+      <div class="form-field"><label>Entry Fee (RWF)</label><input type="number" id="toiletFee" value="200" /></div>
+      <div class="modal-actions"><button class="btn-cancel"
+          onclick="closeModal('addToiletModal')">Cancel</button><button class="btn-add"
+          onclick="addToiletAPI()">Register Toilet</button></div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="addOwnerModal">
+    <div class="modal">
+      <div class="modal-title">Create Owner Account</div>
+      <div class="form-field"><label>Full Name</label><input type="text" id="ownerName" /></div>
+      <div class="form-field"><label>Email</label><input type="email" id="ownerEmail" /></div>
+      <div class="form-field"><label>Phone</label><input type="tel" id="ownerPhone" /></div>
+      <div class="form-field"><label>Password</label><input type="password" id="ownerPass" /></div>
+      <div class="form-field"><label>Secret Word (for recovery)</label><input type="text" id="ownerSecret" value="SmartLoo" /></div>
+      <div class="modal-actions"><button class="btn-cancel" onclick="closeModal('addOwnerModal')">Cancel</button><button
+          class="btn-add" onclick="addOwnerAPI()">Create Account</button></div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="editOwnerModal">
+    <div class="modal">
+      <div class="modal-title">Edit Owner Account</div><input type="hidden" id="editOwnerId" />
+      <div class="form-field"><label>Full Name</label><input type="text" id="editOwnerName" /></div>
+      <div class="form-field"><label>Email</label><input type="email" id="editOwnerEmail" /></div>
+      <div class="form-field"><label>New Password</label><input type="password" id="editOwnerPass" /></div>
+      <div class="modal-actions"><button class="btn-cancel"
+          onclick="closeModal('editOwnerModal')">Cancel</button><button class="btn-add" onclick="updateOwnerAPI()">Save
+          Changes</button></div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="editCleanerModal">
+    <div class="modal">
+      <div class="modal-title">Edit Cleaner Profile</div><input type="hidden" id="editCleanerId" />
+      <div class="form-field"><label>Full Name</label><input type="text" id="editCleanerName" /></div>
+      <div class="form-field"><label>Email</label><input type="email" id="editCleanerEmail" /></div>
+      <div class="form-field"><label>Phone</label><input type="text" id="editCleanerPhone" /></div>
+      <div class="modal-actions"><button class="btn-cancel"
+          onclick="closeModal('editCleanerModal')">Cancel</button><button class="btn-add"
+          onclick="updateCleanerAPI()">Save Changes</button></div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="broadcastModal">
+    <div class="modal">
+      <div class="modal-title">Broadcast Message to All Owners</div><textarea id="broadcastMessage"
+        placeholder="Enter your message to all owners..."></textarea>
+      <div class="modal-actions"><button class="btn-cancel"
+          onclick="closeModal('broadcastModal')">Cancel</button><button class="btn-add" onclick="sendBroadcast()">Send
+          Broadcast</button></div>
+    </div>
+  </div>
+
+  <!-- ADD RFID CARD MODAL -->
+  <div class="modal-overlay" id="addRfidCardModal">
+    <div class="modal">
+      <div class="modal-title">Register RFID Card</div>
+      <div class="form-field">
+        <label>Card UID <small style="color:var(--ink3);">(from Serial Monitor, e.g. 29 67 1C 06)</small></label>
+        <input type="text" id="rfidUid" placeholder="XX XX XX XX" style="text-transform:uppercase;"/>
+      </div>
+      <div class="form-field">
+        <label>Holder Name</label>
+        <input type="text" id="rfidHolderName" placeholder="e.g. Jean Paul" />
+      </div>
+      <div class="form-field">
+        <label>Initial Balance (RWF)</label>
+        <input type="number" id="rfidBalance" value="5000" min="0" />
+      </div>
+      <div class="form-field">
+        <label>Assign to Toilet</label>
+        <select id="rfidToiletId"><option value="">Select toilet...</option></select>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-cancel" onclick="closeModal('addRfidCardModal')">Cancel</button>
+        <button class="btn-add" onclick="registerRfidCard()">Register Card</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOP-UP MODAL -->
+  <div class="modal-overlay" id="topupRfidModal">
+    <div class="modal">
+      <div class="modal-title">Top Up Card Balance</div>
+      <input type="hidden" id="topupCardId" />
+      <div class="form-field">
+        <label>Card: <strong id="topupCardUid">—</strong></label>
+        <label>Current Balance: <strong id="topupCurrentBalance">—</strong> RWF</label>
+      </div>
+      <div class="form-field">
+        <label>Amount to Add (RWF)</label>
+        <input type="number" id="topupAmount" value="1000" min="100" step="100" />
+      </div>
+      <div class="modal-actions">
+        <button class="btn-cancel" onclick="closeModal('topupRfidModal')">Cancel</button>
+        <button class="btn-add" onclick="doTopUp()">Add Balance</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ==================== REAL DATABASE INTEGRATION ====================
+    const API_BASE = window.location.port === '5000' ? '/api' : 'http://localhost:5000/api';
+    let currentUser = null;
+    try {
+      currentUser = JSON.parse(localStorage.getItem('user'));
+    } catch (e) { }
+    if (currentUser && !currentUser.role) currentUser = null;
+    let authToken = localStorage.getItem('token') || null;
+    let selectedRole = 'superadmin';
+    let currentPage = 'dashboard';
+    let currentChatUserId = null;
+    let currentChatUserRole = null;
+    let chatInterval = null;
+
+    // Track unread messages
+    let unreadCounts = {};
+
+    // API Helper
+    async function apiRequest(endpoint, options = {}) {
+      const headers = {
+        'Content-Type': 'application/json',
+        ...(authToken && { 'Authorization': `Bearer ${authToken}` })
+      };
+
+      try {
+        const response = await fetch(`${API_BASE}${endpoint}`, { ...options, headers });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Request failed');
+        return data;
+      } catch (error) {
+        let msg = error.message;
+        if (error instanceof TypeError && msg === 'Failed to fetch') {
+          msg = 'Cannot connect to server. Ensure backend is running at ' + (API_BASE.startsWith('http') ? API_BASE : window.location.origin + API_BASE);
+        }
+        showToast(msg, false);
+        if (error.message.includes('expired') || error.message.includes('token')) doLogout();
+        throw error;
+      }
+    }
+
+    function showToast(message, isSuccess = false) {
+      let toast = document.createElement('div');
+      toast.className = `toast-error ${isSuccess ? 'toast-success' : ''}`;
+      toast.innerHTML = isSuccess ? `✅ ${message}` : `❌ ${message}`;
+      document.body.appendChild(toast);
+      setTimeout(() => toast.remove(), 3000);
+    }
+
+    async function setRole(role, btn) {
+      selectedRole = role;
+      document.querySelectorAll('.role-tab').forEach(t => t.classList.remove('active'));
+      btn.classList.add('active');
+      
+      const roleName = role === 'superadmin' ? 'Admin' : role === 'owner' ? 'Owner' : 'Cleaner';
+      
+      try {
+        const response = await fetch(`${API_BASE}/auth/emails/${roleName}`);
+        const emails = await response.json();
+        const datalist = document.getElementById('emailList');
+        datalist.innerHTML = emails.map(u => `<option value="${u.email}">${u.name}</option>`).join('');
+        
+        // Auto-select first if available
+        if (emails.length > 0) {
+          document.getElementById('loginUser').value = emails[0].email;
+          document.getElementById('loginPass').value = 'password123'; // Demo default
+        }
+      } catch (err) {
+        console.error('Failed to load role emails', err);
+      }
+    }
+
+    function togglePass(id) { let el = document.getElementById(id); el.type = el.type === 'password' ? 'text' : 'password'; }
+
+    async function doLogin() {
+      let email = document.getElementById('loginUser').value;
+      let password = document.getElementById('loginPass').value;
+      let role = selectedRole === 'superadmin' ? 'Admin' : selectedRole === 'owner' ? 'Owner' : 'Cleaner';
+
+      try {
+        const data = await apiRequest('/auth/login', {
+          method: 'POST',
+          body: JSON.stringify({ email, password, role })
+        });
+
+        authToken = data.token;
+        currentUser = data;
+        localStorage.setItem('token', authToken);
+        localStorage.setItem('user', JSON.stringify(currentUser));
+
+        initApp();
+        showToast(`Welcome back, ${currentUser.name}!`, true);
+      } catch (err) {
+        console.error('Login failed', err);
+      }
+    }
+
+    function initApp() {
+      if (!currentUser) return;
+      document.getElementById('loginScreen').classList.remove('active');
+      document.getElementById('appScreen').classList.add('active');
+      document.getElementById('sidebarUser').textContent = currentUser.name;
+      document.getElementById('sidebarRole').textContent = currentUser.role + ' Portal';
+      let initials = currentUser.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+      document.getElementById('userAvatar').textContent = initials;
+
+      document.getElementById('ownerNav').style.display = currentUser.role === 'Owner' ? 'block' : 'none';
+      document.getElementById('cleanerNav').style.display = currentUser.role === 'Cleaner' ? 'block' : 'none';
+      document.getElementById('superNav').style.display = currentUser.role === 'Admin' ? 'block' : 'none';
+
+      if (currentUser.role === 'Owner') showPage('dashboard');
+      else if (currentUser.role === 'Cleaner') showPage('cleanerDash');
+      else showPage('superDash');
+
+      startChatPolling();
+    }
+
+    function startChatPolling() {
+      if (chatInterval) clearInterval(chatInterval);
+      updateUnreadCounts();
+      chatInterval = setInterval(() => {
+        updateUnreadCounts();
+        if (document.getElementById('page-chat').classList.contains('active')) {
+          if (currentChatUserId) refreshChatHistory(false);
+          loadChatContacts();
+        }
+      }, 5000);
+    }
+
+    async function updateUnreadCounts() {
+      if (!currentUser) return;
+      try {
+        const data = await apiRequest('/auth/notifications');
+        const badge = document.getElementById('notifBadge');
+        const count = document.getElementById('notifCount');
+        const sidebarCompBadge = document.getElementById('compBadge');
+        const sidebarChatBadge = document.getElementById('chatBadge');
+
+        // Update top bell
+        if (data.total > 0) {
+          if (badge) badge.style.display = 'block';
+          if (count) { count.style.display = 'block'; count.textContent = data.total; }
+        } else {
+          if (badge) badge.style.display = 'none';
+          if (count) count.style.display = 'none';
+        }
+
+        // Update sidebar complaints badge
+        if (sidebarCompBadge) {
+          if (data.unreadComplaints > 0) {
+            sidebarCompBadge.style.display = 'inline-block';
+            sidebarCompBadge.textContent = data.unreadComplaints;
+          } else {
+            sidebarCompBadge.style.display = 'none';
+          }
+        }
+
+        unreadCounts = data;
+      } catch (err) { }
+    }
+
+    function handleNotificationClick() {
+      if (!unreadCounts) return;
+      if (unreadCounts.unreadMessages > 0) {
+        showPage('chat');
+      } else if (unreadCounts.unreadComplaints > 0) {
+        showPage('complaints');
+      } else {
+        showToast('No new notifications', true);
+      }
+    }
+
+    async function loadChatContacts() {
+      try {
+        let contacts = [];
+        if (currentUser.role === 'Owner') {
+          const cleaners = await apiRequest('/owner/cleaners');
+          const admins = await apiRequest('/owner/admins');
+          contacts = [...cleaners.map(c => ({ ...c, role: 'Cleaner' })), ...admins.map(a => ({ ...a, role: 'Admin' }))];
+        } else if (currentUser.role === 'Cleaner') {
+          // Cleaners talk to their owner
+          const owners = await apiRequest('/cleaner/owners');
+          contacts = owners.map(o => ({ ...o, role: 'Owner' }));
+        } else if (currentUser.role === 'Admin') {
+          contacts = await apiRequest('/admin/owners');
+          contacts = contacts.map(o => ({ ...o, role: 'Owner' }));
+        }
+
+        let container = document.getElementById('chatContactsList');
+        if (!container) return;
+        if (contacts.length === 0) container.innerHTML = '<p style="padding:10px;">No contacts available</p>';
+        else {
+          container.innerHTML = contacts.map(c => {
+            let unread = unreadCounts[`${c.id}_${c.role}`] || 0;
+            let unreadBadge = unread > 0 ? `<span class="unread-badge">${unread}</span>` : '';
+            return `<div class="chat-contact ${currentChatUserId === c.id ? 'active' : ''}" onclick="selectChatContact(${c.id}, '${c.role}', '${c.name}')">
+          <div class="contact-avatar">${c.name.charAt(0)}</div>
+          <div><div class="contact-name">${c.name}</div><div class="contact-role">${c.role}</div></div>
+          ${unreadBadge}
+        </div>`;
+          }).join('');
+        }
+      } catch (err) { }
+    }
+
+    function selectChatContact(id, role, name) {
+      currentChatUserId = id;
+      currentChatUserRole = role;
+      document.getElementById('chatHeaderName').textContent = name;
+      document.getElementById('chatHeaderRole').textContent = role;
+      document.getElementById('chatHeaderAvatar').textContent = name.charAt(0).toUpperCase();
+      refreshChatHistory(true);
+    }
+
+    async function refreshChatHistory(scroll = true) {
+      if (!currentChatUserId) return;
+      try {
+        const messages = await apiRequest(`/chats/history/${currentChatUserId}?otherRole=${currentChatUserRole}`);
+        let container = document.getElementById('chatMessages');
+        if (messages.length === 0) container.innerHTML = '<div style="text-align:center;padding:20px;">No messages yet. Start chatting!</div>';
+        else {
+          container.innerHTML = messages.map(m => {
+            const isMe = m.sender_id === currentUser.id && m.sender_role === currentUser.role;
+            const diffMin = (new Date() - new Date(m.timestamp)) / (1000 * 60);
+            const canEdit = isMe && diffMin <= 5;
+            
+            return `
+              <div class="chat-bubble ${isMe ? 'bubble-out' : 'bubble-in'}">
+                ${m.is_edited ? '<small style="opacity:0.6;display:block;font-size:9px;">(edited)</small>' : ''}
+                <div id="msg-text-${m.id}">${m.message}</div>
+                <div class="bubble-meta">${new Date(m.timestamp).toLocaleTimeString()}</div>
+                <div class="msg-actions">
+                   <button class="msg-action-btn" onclick="deleteChatMessage(${m.id})">Delete</button>
+                   ${canEdit ? `<button class="msg-action-btn" onclick="startEditMessage(${m.id}, '${m.message.replace(/'/g, "\\'")}')">Edit</button>` : ''}
+                </div>
+              </div>
+            `;
+          }).join('');
+        }
+        if (scroll) container.scrollTop = container.scrollHeight;
+      } catch (err) { }
+    }
+
+    let editingMessageId = null;
+    function startEditMessage(id, text) {
+      editingMessageId = id;
+      document.getElementById('chatInput').value = text;
+      document.getElementById('chatInput').focus();
+      document.getElementById('sendChatBtn').innerHTML = 'Save';
+      document.getElementById('sendChatBtn').onclick = saveEdit;
+    }
+
+    async function saveEdit() {
+      const message = document.getElementById('chatInput').value;
+      if (!message) return;
+      try {
+        await apiRequest(`/chats/edit/${editingMessageId}`, {
+          method: 'PUT',
+          body: JSON.stringify({ message })
+        });
+        cancelEdit();
+        refreshChatHistory(false);
+      } catch (err) { }
+    }
+
+    function cancelEdit() {
+      editingMessageId = null;
+      document.getElementById('chatInput').value = '';
+      document.getElementById('sendChatBtn').innerHTML = 'Send';
+      document.getElementById('sendChatBtn').onclick = sendChat;
+    }
+
+    async function deleteChatMessage(id) {
+      if (!confirm('Are you sure you want to delete this message?')) return;
+      try {
+        await apiRequest(`/chats/delete/${id}`, { method: 'DELETE' });
+        refreshChatHistory(false);
+      } catch (err) { }
+    }
+
+    async function sendChat() {
+      let msg = document.getElementById('chatInput').value.trim();
+      if (!msg || !currentChatUserId) { showToast('Select a contact first'); return; }
+      try {
+        await apiRequest('/chats/send', {
+          method: 'POST',
+          body: JSON.stringify({ receiver_id: currentChatUserId, receiver_role: currentChatUserRole, message: msg })
+        });
+        document.getElementById('chatInput').value = '';
+        refreshChatHistory(true);
+      } catch (err) { }
+    }
+
+    function doLogout() {
+      if (chatInterval) clearInterval(chatInterval);
+      currentUser = null;
+      authToken = null;
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      document.getElementById('appScreen').classList.remove('active');
+      document.getElementById('loginScreen').classList.add('active');
+      selectedRole = 'superadmin';
+    }
+
+    function showForgot() { document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); document.getElementById('forgotScreen').classList.add('active'); }
+    function showLogin() { document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); document.getElementById('loginScreen').classList.add('active'); }
+    function showRegister() { document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); document.getElementById('registerScreen').classList.add('active'); }
+    function doReset() {
+      const email = document.getElementById('resetEmail').value;
+      const secret = document.getElementById('resetSecret').value;
+      const pass = document.getElementById('resetNewPass').value;
+      if (!email || !secret || !pass) return showToast('All fields required');
+
+      apiRequest('/auth/reset-password', {
+        method: 'POST',
+        body: JSON.stringify({ email, secret_word: secret, newPassword: pass })
+      }).then(res => {
+        showToast('Password updated successfully!', true);
+        showLogin();
+      }).catch(err => showToast(err.message));
+    }
+
+    async function showPage(page, btn) {
+      currentPage = page;
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      let el = document.getElementById('page-' + page);
+      if (el) el.classList.add('active');
+      if (btn) { document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active')); btn.classList.add('active'); }
+      let titles = { dashboard: 'Dashboard', toilets: 'Toilet Management', revenue: 'Revenue & Finance', transactions: 'Transactions', cleaners: 'Cleaners', chat: 'Messages', complaints: 'Client Complaints', sensorComplaints: 'Sensor Alerts', reports: 'Reports', settings: 'Settings', cleanerDash: 'My Dashboard', cleanerToilets: 'My Toilets', superDash: 'System Overview', owners: 'Owner Management', systemReports: 'System Reports' };
+      document.getElementById('pageTitle').textContent = titles[page] || page;
+
+      if (page === 'dashboard' && currentUser?.role === 'Owner') loadOwnerDashboard();
+      else if (page === 'toilets' && currentUser?.role === 'Owner') loadOwnerToilets();
+      else if (page === 'revenue' && currentUser?.role === 'Owner') loadOwnerRevenue();
+      else if (page === 'transactions' && currentUser?.role === 'Owner') loadOwnerRevenue();
+      else if (page === 'cleaners' && currentUser?.role === 'Owner') loadOwnerCleaners();
+      else if (page === 'complaints' && currentUser?.role === 'Owner') loadComplaints();
+      else if (page === 'chat') { loadChatContacts(); }
+      else if (page === 'settings') { loadSettings(); }
+      else if (page === 'cleanerDash' && currentUser?.role === 'Cleaner') loadCleanerDashboard();
+      else if (page === 'superDash' && currentUser?.role === 'Admin') loadSuperAdminDashboard();
+      else if (page === 'owners' && currentUser?.role === 'Admin') loadAdminOwners();
+      
+      if (page === 'complaints') loadComplaints();
+      if (page === 'sensorComplaints') loadSensorComplaints();
+      if (page === 'reports') loadOwnerDashboard(); // Mock
+      if (page === 'systemReports') loadSuperAdminDashboard();
+
+      // Close sidebar on mobile
+      if (window.innerWidth <= 768) {
+        document.querySelector('.sidebar').classList.remove('mobile-active');
+      }
+    }
+
+    function toggleSidebar() {
+      document.querySelector('.sidebar').classList.toggle('mobile-active');
+    }
+
+    async function loadSensorComplaints() {
+      try {
+        const endpoint = currentUser.role === 'Owner' ? '/owner/complaints' : '/cleaner/complaints';
+        const allComplaints = await apiRequest(endpoint);
+        const complaints = allComplaints.filter(c => c.type === 'Sensor');
+        
+        document.getElementById('openSensorCount').textContent = complaints.filter(c => c.status === 'open').length;
+        document.getElementById('resolvedSensorCount').textContent = complaints.filter(c => c.status === 'resolved').length;
+        
+        document.getElementById('sensorComplaintsList').innerHTML = complaints.length ? complaints.map(c => `
+          <div class="complaint-item">
+            <div class="complaint-icon" style="color:var(--yellow);">${c.status === 'open' ? '📡' : '✅'}</div>
+            <div class="complaint-body">
+              <div class="complaint-title"><strong>${c.location}</strong>: ${c.description}</div>
+              <div class="complaint-meta">${new Date(c.created_at).toLocaleString()} | Type: Sensor</div>
+              <div class="complaint-actions">
+                ${c.status === 'open' ? '<button class="btn-sm btn-resolve" onclick="resolveComplaint(' + c.id + ', true)">Mark Resolved</button>' : ''}
+              </div>
+            </div>
+            <span class="badge ${c.status === 'open' ? 'badge-red' : 'badge-green'}">${c.status}</span>
+          </div>
+        `).join('') : '<p style="padding:20px;">No sensor alerts found.</p>';
+      } catch (err) { }
+    }
+
+    function loadSettings() {
+      if (!currentUser) return;
+      document.getElementById('settingsName').value = currentUser.name || '';
+      document.getElementById('settingsEmail').value = currentUser.email || '';
+      document.getElementById('settingsSecret').value = currentUser.secret_word || '';
+    }
+
+    async function updateProfile() {
+      const name = document.getElementById('settingsName').value;
+      const email = document.getElementById('settingsEmail').value;
+      const currentPassword = document.getElementById('settingsProfilePass').value;
+
+      if (!currentPassword) return showToast('Please enter your password to confirm changes', false);
+
+      try {
+        const secret_word = document.getElementById('settingsSecret').value;
+        await apiRequest('/auth/profile', {
+          method: 'PUT',
+          body: JSON.stringify({ name, email, secret_word, currentPassword })
+        });
+
+        currentUser.name = name;
+        currentUser.email = email;
+        localStorage.setItem('user', JSON.stringify(currentUser));
+        document.getElementById('settingsProfilePass').value = '';
+
+        document.getElementById('sidebarUser').textContent = name;
+        showToast('Profile updated successfully', true);
+      } catch (err) {
+        console.error('Profile update failed', err);
+      }
+    }
+
+    async function updatePassword() {
+      const currentPassword = document.getElementById('settingsOldPass').value;
+      const newPassword = document.getElementById('settingsNewPass').value;
+      const confirm = document.getElementById('settingsConfirmPass').value;
+
+      if (!currentPassword || !newPassword) return showToast('Please fill all password fields', false);
+      if (newPassword !== confirm) {
+        return showToast('New passwords do not match', false);
+      }
+
+      try {
+        await apiRequest('/auth/update-password', {
+          method: 'PUT',
+          body: JSON.stringify({ currentPassword, newPassword })
+        });
+
+        document.getElementById('settingsOldPass').value = '';
+        document.getElementById('settingsNewPass').value = '';
+        document.getElementById('settingsConfirmPass').value = '';
+
+        showToast('Password updated successfully', true);
+      } catch (err) {
+        console.error('Password update failed', err);
+      }
+    }
+
+    async function loadOwnerDashboard() {
+      try {
+        const data = await apiRequest('/owner/dashboard');
+        document.getElementById('ownerTotalRev').textContent = data.totalRevenue.toLocaleString() + ' RWF';
+        document.getElementById('ownerTotalToilets').textContent = data.toiletCount;
+        document.getElementById('ownerTotalCleaners').textContent = data.cleanerCount;
+        // Complaints and mini grid
+        const complaints = await apiRequest('/owner/complaints');
+        document.getElementById('ownerTotalComplaints').textContent = complaints.filter(c => c.status === 'open').length;
+        renderToiletsGrid('mainToiletGrid', data.toilets);
+        renderMiniToilets(data.toilets);
+        updateBroadcastBanner();
+
+        // Revenue chart logic (simplified)
+        if (data.totalRevenue > 0) {
+          document.getElementById('revenueChart').innerHTML = `<div class="bar-wrap"><div class="bar bar-qr" style="height:140px"></div><div class="bar-label">Real Money</div></div>`;
+        }
+      } catch (err) { }
+    }
+
+    async function loadOwnerToilets() {
+      try {
+        const data = await apiRequest('/owner/dashboard');
+        renderToiletsGrid('mainToiletGrid', data.toilets);
+      } catch (err) { }
+    }
+
+    async function loadOwnerRevenue() {
+      try {
+        const transactions = await apiRequest('/owner/transactions');
+        const successfulTxns = transactions.filter(t => t.status === 'completed' || t.status === 'Paid');
+        const failedTxns = transactions.filter(t => t.status === 'failed' || t.status === 'expired' || t.status === 'pending');
+        const total = successfulTxns.reduce((s, t) => s + parseFloat(t.amount), 0);
+        document.getElementById('revTotalMonth').textContent = total.toLocaleString();
+        document.getElementById('revPaidCount').textContent = successfulTxns.length;
+        document.getElementById('revFailedCount').textContent = failedTxns.length;
+        document.getElementById('transactionsTableBody').innerHTML = transactions.length ? transactions.map(t => {
+          let badgeColor = (t.status === 'completed' || t.status === 'Paid') ? 'badge-green' : (t.status === 'pending' ? 'badge-yellow' : 'badge-red');
+          return `<tr><td>#${t.transaction_id || t.id}</td><td>${new Date(t.created_at).toLocaleString()}</td><td>${t.location}</td><td>${t.phone_number}</td><td>${t.amount} RWF</td><td><span class="badge ${badgeColor}">${t.status}</span></td></tr>`;
+        }).join('') : '<tr><td colspan="6">No transactions found</td></tr>';
+      } catch (err) { }
+    }
+
+    async function loadOwnerCleaners() {
+      try {
+        const cleaners = await apiRequest('/owner/cleaners');
+        document.getElementById('cleanersList').innerHTML = cleaners.length ? cleaners.map(c => `<div class="cleaner-card"><div class="cleaner-avatar">${c.name.charAt(0)}</div><div class="cleaner-info"><div class="cleaner-name">${c.name}</div><div class="cleaner-detail">${c.email}</div></div><span class="badge badge-green">Active</span><div class="cleaner-actions"><button class="btn-sm btn-danger" onclick="deleteCleaner(${c.id})">Remove</button></div></div>`).join('') : '<p>No cleaners assigned yet.</p>';
+      } catch (err) { }
+    }
+
+    async function loadComplaints() {
+      try {
+        const endpoint = currentUser.role === 'Owner' ? '/owner/complaints' : '/cleaner/complaints';
+        const allComplaints = await apiRequest(endpoint);
+        const complaints = allComplaints.filter(c => c.type === 'User');
+        
+        document.getElementById('openComplaintsCount').textContent = complaints.filter(c => c.status === 'open').length;
+        document.getElementById('resolvedComplaintsCount').textContent = complaints.filter(c => c.status === 'resolved').length;
+        document.getElementById('complaintsList').innerHTML = complaints.length ? complaints.map(c => `
+          <div class="complaint-item">
+            <div class="complaint-icon">${c.status === 'open' ? '⚠' : '✅'}</div>
+            <div class="complaint-body">
+              <div class="complaint-title"><strong>${c.location}</strong>: ${c.description}</div>
+              <div class="complaint-meta">${new Date(c.created_at).toLocaleString()} | Source: Customer</div>
+              <div class="complaint-actions">
+                ${c.status === 'open' ? '<button class="btn-sm btn-resolve" onclick="resolveComplaint(' + c.id + ')">Mark Resolved</button>' : ''}
+              </div>
+            </div>
+            <span class="badge ${c.status === 'open' ? 'badge-red' : 'badge-green'}">${c.status}</span>
+          </div>
+        `).join('') : '<p style="padding:20px;">No user complaints found.</p>';
+      } catch (err) { }
+    }
+
+    async function resolveComplaint(id, isSensor = false) {
+      try {
+        const role = currentUser.role === 'Owner' ? 'owner' : 'cleaner';
+        await apiRequest(`/${role}/complaints/${id}/resolve`, { method: 'PUT' });
+        showToast('Complaint resolved', true);
+        if (isSensor) loadSensorComplaints();
+        else loadComplaints();
+        if (currentPage === 'cleanerDash') loadCleanerDashboard();
+      } catch (err) { }
+    }
+
+    async function loadCleanerDashboard() {
+      try {
+        const alerts = await apiRequest('/cleaner/alerts');
+        document.getElementById('cleanerToiletCount').textContent = alerts.length;
+        document.getElementById('cleanerAlertCount').textContent = alerts.filter(t => t.soap_level === 'Low' || t.smell_level === 'High').length;
+        renderToiletsGrid('cleanerToiletGrid', alerts);
+        renderToiletsGrid('cleanerToiletGrid2', alerts);
+
+        const complaints = await apiRequest('/cleaner/complaints');
+        const open = complaints.filter(c => c.status === 'open');
+        document.getElementById('cleanerOpenComplaints').textContent = open.length;
+        document.getElementById('cleanerMiniComplaints').innerHTML = complaints.length ? complaints.slice(0, 5).map(c => `<div style="padding:10px;border-bottom:1px solid var(--border);font-size:13px;"><div style="display:flex;justify-content:space-between;"><strong>${c.location}</strong><span class="badge ${c.status === 'open' ? 'badge-red' : 'badge-green'}">${c.status}</span></div><div>${c.description}</div></div>`).join('') : '<p style="padding:10px;">No complaints</p>';
+        updateBroadcastBanner();
+      } catch (err) { }
+    }
+
+    async function loadSuperAdminDashboard() {
+      try {
+        const data = await apiRequest('/admin/dashboard');
+        document.getElementById('superTotalOwners').textContent = data.totalOwners;
+        document.getElementById('superTotalToilets').textContent = data.totalToilets;
+        document.getElementById('superTotalRev').textContent = data.totalRevenue.toLocaleString() + ' RWF';
+        document.getElementById('superTotalCleaners').textContent = data.totalCleaners;
+        document.getElementById('ownersTableBody').innerHTML = data.owners.map(o => `<tr><td>${o.name}</td><td>${o.totalToilets}</td><td>${(o.ownerRevenue || 0).toLocaleString()} RWF</td><td>${o.cleanerCount}</td><td><button class="btn-sm btn-danger" onclick="deleteOwner(${o.id})">Delete</button></td></tr>`).join('');
+      } catch (err) { }
+    }
+
+    async function loadAdminOwners() {
+      try {
+        const owners = await apiRequest('/admin/owners');
+        document.getElementById('ownersList').innerHTML = owners.map(o => `<div class="owner-card"><div class="owner-avatar">${o.name.charAt(0)}</div><div class="owner-info"><div class="owner-name">${o.name}</div><div class="owner-detail">${o.email}</div></div><span class="badge badge-green">Active</span><div class="owner-actions"><button class="btn-sm btn-danger" onclick="deleteOwner(${o.id})">Delete</button></div></div>`).join('');
+      } catch (err) { }
+    }
+
+    async function deleteOwner(id) {
+      if (!confirm('Delete owner and all their data?')) return;
+      try {
+        await apiRequest(`/admin/owners/${id}`, { method: 'DELETE' });
+        showToast('Owner deleted', true);
+        loadSuperAdminDashboard(); loadAdminOwners();
+      } catch (err) { }
+    }
+
+    async function deleteCleaner(id) {
+      if (!confirm('Remove cleaner?')) return;
+      try {
+        await apiRequest(`/owner/cleaners/${id}`, { method: 'DELETE' });
+        showToast('Cleaner removed', true);
+        loadOwnerCleaners();
+      } catch (err) { }
+    }
+
+    async function addCleaner() {
+      let name = document.getElementById('cleanerName').value;
+      let email = document.getElementById('cleanerEmail').value;
+      let pass = document.getElementById('cleanerPass').value;
+      if (!name || !email || !pass) return showToast('Fill all fields');
+      const secret = document.getElementById('cleanerSecret').value;
+      try {
+        await apiRequest('/owner/cleaners', {
+          method: 'POST',
+          body: JSON.stringify({ name, email, password: pass, secret_word: secret })
+        });
+        closeModal('addCleanerModal');
+        loadOwnerCleaners();
+        showToast('Cleaner added', true);
+      } catch (err) { }
+    }
+
+    async function addToiletAPI() {
+      let loc = document.getElementById('toiletLoc').value;
+      if (!loc) return;
+      try {
+        await apiRequest('/owner/toilet', {
+          method: 'POST',
+          body: JSON.stringify({ location: loc })
+        });
+        closeModal('addToiletModal');
+        loadOwnerToilets();
+        showToast('Toilet added', true);
+      } catch (err) { }
+    }
+
+    async function addOwnerAPI() {
+      let name = document.getElementById('ownerName').value;
+      let email = document.getElementById('ownerEmail').value;
+      let pass = document.getElementById('ownerPass').value;
+      if (!name || !email || !pass) return showToast('Fill all fields');
+      const secret = document.getElementById('ownerSecret').value;
+      try {
+        await apiRequest('/admin/owners', {
+          method: 'POST',
+          body: JSON.stringify({ name, email, password: pass, secret_word: secret })
+        });
+        closeModal('addOwnerModal');
+        loadSuperAdminDashboard(); loadAdminOwners();
+        showToast('Owner created', true);
+      } catch (err) { }
+    }
+
+    async function sendBroadcast() {
+      let msg = document.getElementById('broadcastMessage')?.value || document.getElementById('broadcastQuickMsg')?.value;
+      if (!msg) return;
+      try {
+        const role = currentUser.role === 'Admin' ? 'admin' : 'owner';
+        await apiRequest(`/${role}/broadcast`, {
+          method: 'POST',
+          body: JSON.stringify({ message: msg })
+        });
+        showToast('Broadcast sent successfully', true);
+        if (document.getElementById('broadcastMessage')) document.getElementById('broadcastMessage').value = '';
+        if (document.getElementById('broadcastQuickMsg')) document.getElementById('broadcastQuickMsg').value = '';
+        closeModal('broadcastModal');
+        updateBroadcastBanner();
+      } catch (err) { }
+    }
+
+    async function updateBroadcastBanner() {
+      try {
+        const role = currentUser.role === 'Admin' ? 'admin' : (currentUser.role === 'Owner' ? 'owner' : 'cleaner');
+        const broadcasts = await apiRequest(`/${role}/broadcasts`);
+        if (broadcasts && broadcasts.length > 0) {
+          const latest = broadcasts[0];
+          const bannerId = currentUser.role === 'Cleaner' ? 'cleanerBroadcastBanner' : 'broadcastBanner';
+          const textId = currentUser.role === 'Cleaner' ? 'cleanerBroadcastText' : 'broadcastMessageText';
+          
+          const banner = document.getElementById(bannerId);
+          const text = document.getElementById(textId);
+          
+          if (banner && text) {
+            text.textContent = latest.message;
+            const strong = banner.querySelector('strong');
+            if (strong) strong.textContent = `From ${latest.sender_name}:`;
+            banner.style.display = 'flex';
+          }
+        }
+      } catch (err) { }
+    }
+
+    function generateReport(type) { showToast(`Generating ${type} report... (Real data export)`, true); }
+
+    function renderToiletsGrid(gridId, toilets) {
+      let el = document.getElementById(gridId);
+      if (!el) return;
+      el.innerHTML = toilets.length ? toilets.map(t => `<div class="toilet-card"><div class="toilet-name">🚻 ${t.location}</div><div class="toilet-meta">Revenue: ${(t.revenue || 0).toLocaleString()} RWF</div><div class="sensor-row"><div class="sensor-chip ${t.soap_level === 'High' ? 'sensor-ok' : 'sensor-alert'}">🧴 Soap ${t.soap_level}</div><div class="sensor-chip ${t.smell_level === 'Low' ? 'sensor-ok' : 'sensor-alert'}">👃 Smell ${t.smell_level}</div></div><span class="badge ${t.status === 'operational' ? 'badge-green' : 'badge-red'}">${t.status}</span></div>`).join('') : '<p>No toilets found.</p>';
+    }
+
+    function renderMiniToilets(toilets) {
+      let el = document.getElementById('miniToiletGrid');
+      if (el) el.innerHTML = toilets.slice(0, 3).map(t => `<div style="display:flex;align-items:center;gap:10px;padding:8px;"><div style="width:8px;height:8px;border-radius:50%;background:${t.status === 'operational' ? '#10b981' : '#ef4444'};"></div><div>${t.location}</div><span style="margin-left:auto;">${(t.revenue || 0).toLocaleString()} RWF</span></div>`).join('');
+    }
+
+    function openModal(id) { document.getElementById(id).classList.add('active'); }
+    function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+
+    window.onclick = function (e) { if (e.target.classList.contains('modal-overlay')) e.target.classList.remove('active'); }
+
+    // Init
+    try {
+      if (authToken && currentUser) {
+        initApp();
+      } else {
+        // Load initial emails for default role
+        setRole('superadmin', document.querySelector('.role-tab'));
+      }
+    } catch (err) {
+      console.error('Init error', err);
+      localStorage.clear();
+    }
+
+    // ================================================================
+    // IoT LIVE EVENTS & RFID CARD MANAGEMENT
+    // ================================================================
+
+    let sseConnection = null;      // EventSource for SSE stream
+    let iotEventCount = 0;         // badge counter
+    const IOT_TOILET_ID = 'all';   // subscribe to all toilets
+
+    // ── Event type styling helpers ───────────────────────────────────
+    const EVENT_META = {
+      door_open:    { icon: '🚪', label: 'Door Opened',    color: '#3b82f6' },
+      door_close:   { icon: '🚪', label: 'Door Closed',    color: '#6366f1' },
+      lid_open:     { icon: '🚽', label: 'Lid Opened',     color: '#f59e0b' },
+      lid_close:    { icon: '🚽', label: 'Lid Closed',     color: '#78716c' },
+      flush:        { icon: '💧', label: 'Flush',          color: '#06b6d4' },
+      rfid_tap:     { icon: '💳', label: 'RFID Payment',   color: '#10b981' },
+      rfid_denied:  { icon: '❌', label: 'Card Denied',    color: '#ef4444' },
+      payment:      { icon: '💰', label: 'Payment',        color: '#10b981' },
+      payment_failed: { icon: '❌', label: 'Payment Failed', color: '#ef4444' },
+      payment_trigger: { icon: '🔑', label: 'Door Triggered', color: '#3b82f6' },
+      sensor_update:{ icon: '📡', label: 'Sensor Update',  color: '#8b5cf6' },
+      connected:    { icon: '🟢', label: 'Stream Connected', color: '#10b981' },
+    };
+
+    function buildEventRow(ev) {
+      const m = EVENT_META[ev.event_type] || { icon: '⚡', label: ev.event_type, color: '#94a3b8' };
+      const t = ev.created_at ? new Date(ev.created_at).toLocaleTimeString() : new Date().toLocaleTimeString();
+      const toiletBadge = ev.toilet_id ? `<span style="font-size:10px;background:var(--bg2);border-radius:4px;padding:1px 6px;margin-left:6px;">Toilet #${ev.toilet_id}</span>` : '';
+      return `
+        <div style="display:flex;align-items:flex-start;gap:10px;padding:8px 12px;border-radius:10px;background:var(--bg2);border-left:3px solid ${m.color};animation:fadeIn .3s ease;">
+          <span style="font-size:18px;line-height:1;">${m.icon}</span>
+          <div style="flex:1;min-width:0;">
+            <div style="font-weight:600;font-size:13px;color:${m.color};">${m.label}${toiletBadge}</div>
+            <div style="font-size:12px;color:var(--ink3);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${ev.details || ''}</div>
+          </div>
+          <span style="font-size:11px;color:var(--ink3);white-space:nowrap;">${t}</span>
+        </div>`;
+    }
+
+    function prependEvent(ev, feedId) {
+      const feed = document.getElementById(feedId);
+      if (!feed) return;
+      // Remove placeholder
+      const placeholder = feed.querySelector('[data-placeholder]');
+      if (placeholder) placeholder.remove();
+      const row = document.createElement('div');
+      row.innerHTML = buildEventRow(ev);
+      feed.insertBefore(row.firstElementChild, feed.firstChild);
+      // Keep max 100 items
+      while (feed.children.length > 100) feed.removeChild(feed.lastChild);
+    }
+
+    // ── Update dashboard RFID stats on payment event ─────────────────
+    function updateDashboardRfidStats(ev) {
+      if (ev.event_type === 'rfid_tap' || ev.event_type === 'payment') {
+        const el = document.getElementById('rfidLastTap');
+        if (el) el.textContent = new Date().toLocaleTimeString();
+        if (ev.event_type === 'payment') {
+          const elp = document.getElementById('rfidLastPayment');
+          if (elp) { const m = ev.details && ev.details.match(/RWF (\d+)/); elp.textContent = m ? 'RWF ' + m[1] : 'RWF 100'; }
+        }
+      }
+      // Update IoT page counters
+      if (ev.event_type === 'door_open' || ev.event_type === 'door_close') {
+        const el = document.getElementById('iotDoorCount');
+        if (el) el.textContent = parseInt(el.textContent || 0) + 1;
+      }
+      if (ev.event_type === 'rfid_tap') {
+        const el = document.getElementById('iotRfidCount');
+        if (el) el.textContent = parseInt(el.textContent || 0) + 1;
+      }
+      if (ev.event_type === 'flush') {
+        const el = document.getElementById('iotFlushCount');
+        if (el) el.textContent = parseInt(el.textContent || 0) + 1;
+      }
+    }
+
+    // ── Start SSE stream ─────────────────────────────────────────────
+    function startSseStream() {
+      if (sseConnection) { sseConnection.close(); sseConnection = null; }
+      const url = `${API_BASE}/hardware/events/stream/${IOT_TOILET_ID}`;
+      try {
+        sseConnection = new EventSource(url);
+        sseConnection.onmessage = (e) => {
+          try {
+            const ev = JSON.parse(e.data);
+            if (ev.event_type === 'connected') return;
+            // Push to both feeds
+            prependEvent(ev, 'dashboardEventsFeed');
+            prependEvent(ev, 'iotEventsList');
+            updateDashboardRfidStats(ev);
+            // Notify badge if not on IoT page
+            if (currentPage !== 'iotEvents') {
+              iotEventCount++;
+              const badge = document.getElementById('iotEventBadge');
+              if (badge) { badge.style.display = ''; badge.textContent = iotEventCount > 9 ? '9+' : iotEventCount; }
+            }
+          } catch (_) {}
+        };
+        sseConnection.onerror = () => {
+          const dot = document.getElementById('iotStreamDot');
+          if (dot) dot.style.background = '#ef4444';
+          const liveDot = document.getElementById('iotLiveDot');
+          if (liveDot) liveDot.style.background = '#94a3b8';
+          // Retry after 5 s
+          setTimeout(startSseStream, 5000);
+        };
+        sseConnection.onopen = () => {
+          const dot = document.getElementById('iotStreamDot');
+          if (dot) dot.style.background = '#10b981';
+          // Mark dashboard feed as ready
+          const feed = document.getElementById('dashboardEventsFeed');
+          if (feed && feed.children.length === 1 && feed.firstElementChild.textContent.includes('Connecting')) {
+            feed.firstElementChild.setAttribute('data-placeholder','1');
+            feed.firstElementChild.textContent = 'Waiting for hardware events...';
+          }
+        };
+      } catch(e) {
+        console.warn('SSE not supported or connection failed:', e);
+      }
+    }
+
+    // ── Load historical events via HTTP (for page open) ──────────────
+    async function loadIotEvents() {
+      const filterEl = document.getElementById('iotToiletFilter');
+      const toiletId = filterEl ? filterEl.value : 'all';
+      const list = document.getElementById('iotEventsList');
+      if (!list) return;
+      list.innerHTML = '<div style="text-align:center;padding:32px;color:var(--ink3);">Loading...</div>';
+      try {
+        // Try each toilet, or use a known one
+        let events = [];
+        if (toiletId === 'all') {
+          // Fetch for toilets 1–10 and merge
+          for (let i = 1; i <= 5; i++) {
+            try {
+              const r = await fetch(`${API_BASE}/hardware/events/${i}?limit=20`);
+              if (r.ok) { const d = await r.json(); events = events.concat(d); }
+            } catch(_) {}
+          }
+          events.sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
+          events = events.slice(0, 50);
+        } else {
+          const r = await fetch(`${API_BASE}/hardware/events/${toiletId}?limit=50`);
+          if (r.ok) events = await r.json();
+        }
+        if (!events.length) {
+          list.innerHTML = '<div style="text-align:center;padding:32px;color:var(--ink3);">No events yet. Tap an RFID card to see live activity.</div>';
+          return;
+        }
+        list.innerHTML = events.map(ev => buildEventRow(ev)).join('');
+        // Update counters
+        const today = new Date().toDateString();
+        events.forEach(ev => {
+          if (new Date(ev.created_at).toDateString() !== today) return;
+          if (ev.event_type==='door_open'||ev.event_type==='door_close') {
+            const el = document.getElementById('iotDoorCount');
+            if (el) el.textContent = parseInt(el.textContent||0)+1;
+          }
+          if (ev.event_type==='rfid_tap') {
+            const el = document.getElementById('iotRfidCount');
+            if (el) el.textContent = parseInt(el.textContent||0)+1;
+          }
+          if (ev.event_type==='flush') {
+            const el = document.getElementById('iotFlushCount');
+            if (el) el.textContent = parseInt(el.textContent||0)+1;
+          }
+        });
+      } catch(e) {
+        list.innerHTML = '<div style="text-align:center;padding:32px;color:var(--ink3);">Could not load events.</div>';
+      }
+    }
+
+    // ── Populate toilet filter dropdown ──────────────────────────────
+    async function populateIotToiletFilter() {
+      try {
+        const role = currentUser && currentUser.role;
+        const endpoint = role === 'superadmin' ? '/admin/dashboard' : '/owner/dashboard';
+        const data = await apiRequest(endpoint);
+        const sel = document.getElementById('iotToiletFilter');
+        const rfidSel = document.getElementById('rfidToiletId');
+        if (!sel) return;
+        (data.toilets || []).forEach(t => {
+          const opt = document.createElement('option');
+          opt.value = t.id;
+          opt.textContent = t.location || `Toilet #${t.id}`;
+          sel.appendChild(opt.cloneNode(true));
+          if (rfidSel) rfidSel.appendChild(opt);
+        });
+      } catch(_) {}
+    }
+
+    // ── RFID Cards Management ────────────────────────────────────────
+    async function loadRfidCards() {
+      const list = document.getElementById('rfidCardsList');
+      if (!list) return;
+      list.innerHTML = '<div style="text-align:center;padding:32px;color:var(--ink3);">Loading cards...</div>';
+      try {
+        const cards = await apiRequest('/rfid/cards');
+        const el = document.getElementById('rfidCardCount');
+        if (el) el.textContent = cards.length;
+        if (!cards.length) {
+          list.innerHTML = '<div style="text-align:center;padding:32px;color:var(--ink3);">No cards registered yet. Click "+ Register Card" to add one.</div>';
+          return;
+        }
+        list.innerHTML = `
+          <table>
+            <thead><tr>
+              <th>UID</th><th>Holder</th><th>Balance</th><th>Toilet</th><th>Status</th><th>Actions</th>
+            </tr></thead>
+            <tbody>
+              ${cards.map(c => `
+                <tr>
+                  <td><code style="font-size:13px;background:var(--bg2);padding:2px 6px;border-radius:4px;">${c.uid}</code></td>
+                  <td>${c.holder_name}</td>
+                  <td><strong style="color:${parseFloat(c.balance)<200?'#ef4444':'#10b981'};">RWF ${parseFloat(c.balance).toLocaleString()}</strong></td>
+                  <td>${c.toilet_location || '—'}</td>
+                  <td><span class="badge" style="background:${c.is_active?'rgba(16,185,129,.15)':'rgba(239,68,68,.15)'};color:${c.is_active?'#10b981':'#ef4444'};border-radius:20px;padding:2px 10px;font-size:11px;">${c.is_active?'Active':'Inactive'}</span></td>
+                  <td style="display:flex;gap:6px;">
+                    <button class="btn-sm btn-resolve" onclick="openTopUp(${c.id},'${c.uid}',${c.balance})">💳 Top Up</button>
+                    <button class="btn-sm btn-dismiss" onclick="deleteRfidCard(${c.id})">🗑</button>
+                  </td>
+                </tr>`).join('')}
+            </tbody>
+          </table>`;
+      } catch(e) {
+        list.innerHTML = '<div style="text-align:center;padding:32px;color:var(--ink3);">Error loading cards.</div>';
+      }
+    }
+
+    async function registerRfidCard() {
+      const uid     = document.getElementById('rfidUid').value.trim();
+      const name    = document.getElementById('rfidHolderName').value.trim();
+      const balance = document.getElementById('rfidBalance').value;
+      const toilet  = document.getElementById('rfidToiletId').value;
+      if (!uid) { showToast('Enter the card UID', false); return; }
+      try {
+        await apiRequest('/rfid/cards', {
+          method: 'POST',
+          body: JSON.stringify({ uid, holder_name: name||'User', balance: parseFloat(balance)||5000, toilet_id: toilet||null })
+        });
+        showToast('Card registered! Tap it now — it will work.', true);
+        closeModal('addRfidCardModal');
+        loadRfidCards();
+      } catch(e) { /* apiRequest already shows toast */ }
+    }
+
+    function openTopUp(id, uid, balance) {
+      document.getElementById('topupCardId').value = id;
+      document.getElementById('topupCardUid').textContent = uid;
+      document.getElementById('topupCurrentBalance').textContent = parseFloat(balance).toLocaleString();
+      openModal('topupRfidModal');
+    }
+
+    async function doTopUp() {
+      const id  = document.getElementById('topupCardId').value;
+      const amt = parseFloat(document.getElementById('topupAmount').value);
+      if (!amt || amt < 100) { showToast('Minimum top-up is RWF 100', false); return; }
+      try {
+        await apiRequest(`/rfid/cards/${id}`, {
+          method: 'PUT',
+          body: JSON.stringify({ add_amount: amt })
+        });
+        showToast(`RWF ${amt.toLocaleString()} added successfully!`, true);
+        closeModal('topupRfidModal');
+        loadRfidCards();
+      } catch(e) { /* apiRequest already shows toast */ }
+    }
+
+    async function deleteRfidCard(id) {
+      if (!confirm('Delete this RFID card? This cannot be undone.')) return;
+      try {
+        await apiRequest(`/rfid/cards/${id}`, { method: 'DELETE' });
+        showToast('Card deleted.', true);
+        loadRfidCards();
+      } catch(e) { /* apiRequest already shows toast */ }
+    }
+
+    // ── Hook into showPage to load IoT data on navigation ────────────
+    const _origShowPage = typeof showPage === 'function' ? showPage : null;
+    // Wrap showPage to trigger IoT loads
+    const _iotPageHook = function(page, btn, extra) {
+      if (page === 'iotEvents') {
+        iotEventCount = 0;
+        const badge = document.getElementById('iotEventBadge');
+        if (badge) badge.style.display = 'none';
+        loadIotEvents();
+      }
+      if (page === 'rfidCards') loadRfidCards();
+    };
+    // Patch the global showPage (defined earlier in the file)
+    const _origSP = window.showPage;
+    window.showPage = function(page, btn, extra) {
+      _origSP && _origSP(page, btn, extra);
+      _iotPageHook(page, btn, extra);
+    };
+
+    // ── Start everything when owner logs in ──────────────────────────
+    const _origInitApp = window.initApp;
+    window.initApp = function() {
+      _origInitApp && _origInitApp();
+      // Start SSE for any logged-in user (owner or admin will see IoT)
+      setTimeout(() => {
+        startSseStream();
+        populateIotToiletFilter();
+      }, 1500);
+    };
+
+    // ── Inject pulse + fadeIn CSS ─────────────────────────────────────
+    (function() {
+      const s = document.createElement('style');
+      s.textContent = `
+        @keyframes pulse {
+          0%,100% { opacity:1; transform:scale(1); }
+          50%      { opacity:.4; transform:scale(.8); }
+        }
+        @keyframes fadeIn {
+          from { opacity:0; transform:translateY(-6px); }
+          to   { opacity:1; transform:translateY(0); }
+        }
+      `;
+      document.head.appendChild(s);
+    })();
+
+  </script>
+</body>
+
+</html>
