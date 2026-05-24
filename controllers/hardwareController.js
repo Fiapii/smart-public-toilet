@@ -279,7 +279,7 @@ exports.checkPaymentTrigger = async (req, res) => {
 };
 
 // ─────────────────────────────────────────────────────────────
-// Sensor data update (soap, smell)
+// Sensor data update (soap, smell) + automatic alert on bad smell
 // ─────────────────────────────────────────────────────────────
 exports.updateSensors = async (req, res) => {
   const { toilet_id, soap_level, smell_level } = req.body;
@@ -287,14 +287,49 @@ exports.updateSensors = async (req, res) => {
     return res.status(400).json({ error: 'Missing parameters' });
   }
   try {
+    // 1. Update the toilet's soap and smell levels
     const [result] = await db.query(
       'UPDATE toilets SET soap_level = ?, smell_level = ? WHERE id = ?',
       [soap_level, smell_level, toilet_id]
     );
     if (result.affectedRows === 0) return res.status(404).json({ error: 'Toilet not found' });
+
+    // 2. Log the sensor update (for real-time dashboards)
     await logAndBroadcast(toilet_id, 'sensor_update', `soap=${soap_level}, smell=${smell_level}`);
+
+    // 3. If smell is "High", create a sensor complaint (unless one already open recently)
+    if (smell_level === 'High') {
+      // Check for an unresolved sensor complaint for this toilet in the last 10 minutes
+      const [existing] = await db.query(
+        `SELECT id FROM complaints 
+         WHERE toilet_id = ? AND type = 'Sensor' AND status = 'open' 
+         AND created_at > NOW() - INTERVAL 10 MINUTE`,
+        [toilet_id]
+      );
+
+      if (existing.length === 0) {
+        // Insert new complaint
+        await db.query(
+          `INSERT INTO complaints (toilet_id, description, type, status, created_at)
+           VALUES (?, ?, 'Sensor', 'open', NOW())`,
+          [toilet_id, 'Unpleasant smell detected. Please check ventilation or cleaning.']
+        );
+        console.log(`[ALERT] Sensor complaint created for toilet ${toilet_id} (bad smell)`);
+
+        // Optional: broadcast a real-time alert via SSE
+        broadcastEvent(toilet_id, {
+          event_type: 'alert',
+          details: 'Bad smell detected',
+          level: 'High'
+        });
+      } else {
+        console.log(`[ALERT] Smell still High, but complaint already open (toilet ${toilet_id})`);
+      }
+    }
+
     res.json({ message: 'Sensor data updated' });
   } catch (error) {
+    console.error('[UPDATE_SENSORS] Error:', error);
     res.status(500).json({ error: error.message });
   }
 };
