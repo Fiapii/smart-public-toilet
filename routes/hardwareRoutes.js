@@ -15,7 +15,7 @@ const router = express.Router();
 router.post('/sensor-update', updateSensors);
 router.post('/rfid-tap', rfidTap);
 router.post('/log-event', logEvent);
-router.post('/occupancy/:toilet_id', setOccupancy);
+router.put('/occupancy/:toilet_id', setOccupancy);   // ✅ changed to PUT
 
 // Payment check (ESP32 polls this)
 router.get('/payment-check/:toilet_id', checkPaymentTrigger);
