@@ -79,6 +79,7 @@ exports.deleteOwner = async (req, res) => {
   }
 };
 
+// MODIFIED: added adminInterest (5% commission)
 exports.getAdminDashboard = async (req, res) => {
   try {
     // Total system revenue from completed payments only
@@ -93,6 +94,9 @@ exports.getAdminDashboard = async (req, res) => {
 
     // Total owners
     const [ownerCount] = await db.query('SELECT COUNT(*) as count FROM `owners`');
+
+    // Admin commission: 5% of total revenue
+    const adminInterest = totalRevenue * 0.05;
 
     const [owners] = await db.query(`
       SELECT o.id, o.name, o.email,
@@ -111,6 +115,7 @@ exports.getAdminDashboard = async (req, res) => {
       totalToilets: toiletCount[0].count,
       totalCleaners: cleanerCount[0].count,
       totalOwners: ownerCount[0].count,
+      adminInterest,   // ← 5% commission
       owners
     });
   } catch (error) {

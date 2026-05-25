@@ -409,7 +409,7 @@
               </thead>
               <tbody id="transactionsTableBody">
                 <tr>
-                  <td colspan="6" style="text-align:center;padding:32px;">Loading transactions...</td>
+                  <td colspan="6" style="text-align:center;padding:32px;">Loading transactions...<\/td>
                 </tr>
               </tbody>
             </table>
@@ -631,32 +631,37 @@
         </div>
       </div>
 
-      <!-- SUPER ADMIN DASHBOARD -->
+      <!-- SUPER ADMIN DASHBOARD (MODIFIED: removed Active Cleaners, added Admin Commission) -->
       <div class="page" id="page-superDash">
         <div class="grid-4">
+          <!-- Total Owners -->
           <div class="stat-card">
             <div class="stat-icon">👥</div>
             <div class="stat-label">Total Owners</div>
             <div class="stat-val" id="superTotalOwners">—</div>
           </div>
+          <!-- Total Revenue -->
           <div class="stat-card">
             <div class="stat-icon">💰</div>
             <div class="stat-label">System Revenue</div>
             <div class="stat-val" id="superTotalRev">—</div>
           </div>
+          <!-- Total Toilets -->
           <div class="stat-card">
             <div class="stat-icon">🚻</div>
             <div class="stat-label">Total Toilets</div>
             <div class="stat-val" id="superTotalToilets">—</div>
           </div>
+          <!-- Admin Commission (5%) -->
           <div class="stat-card">
-            <div class="stat-icon">🧹</div>
-            <div class="stat-label">Active Cleaners</div>
-            <div class="stat-val" id="superTotalCleaners">—</div>
+            <div class="stat-icon">📈</div>
+            <div class="stat-label">Admin Commission (5%)</div>
+            <div class="stat-val" id="superAdminInterest">—</div>
           </div>
         </div>
+
         <div class="card">
-          <div style="display:flex;justify-content:space-between;margin-bottom:16px;">
+          <div style="display:flex; justify-content:space-between; margin-bottom:16px;">
             <div class="card-title">Owner Revenue Overview</div><button class="btn-sm"
               onclick="openModal('broadcastModal')">📢 Broadcast Message</button>
           </div>
@@ -1336,8 +1341,15 @@
         document.getElementById('revFailedCount').textContent = failedTxns.length;
         document.getElementById('transactionsTableBody').innerHTML = transactions.length ? transactions.map(t => {
           let badgeColor = (t.status === 'completed' || t.status === 'Paid') ? 'badge-green' : (t.status === 'pending' ? 'badge-yellow' : 'badge-red');
-          return `<tr><td>#${t.transaction_id || t.id}</td><td>${new Date(t.created_at).toLocaleString()}</td><td>${t.location}</td><td>${t.phone_number}</td><td>${t.amount} RWF</td><td><span class="badge ${badgeColor}">${t.status}</span></td></tr>`;
-        }).join('') : '<tr><td colspan="6">No transactions found</td></tr>';
+          return `<tr>
+            <td>#${t.transaction_id || t.id}</td>
+            <td>${new Date(t.created_at).toLocaleString()}</td>
+            <td>${t.location}</td>
+            <td>${t.phone_number}</td>
+            <td>${t.amount} RWF</td>
+            <td><span class="badge ${badgeColor}">${t.status}</span></td>
+          </td>`;
+        }).join('') : '<tr><td colspan="6">No transactions found<\/td></td>';
       } catch (err) { }
     }
 
@@ -1399,15 +1411,30 @@
       } catch (err) { }
     }
 
+    // MODIFIED: Super admin dashboard now includes adminInterest
     async function loadSuperAdminDashboard() {
       try {
         const data = await apiRequest('/admin/dashboard');
         document.getElementById('superTotalOwners').textContent = data.totalOwners;
         document.getElementById('superTotalToilets').textContent = data.totalToilets;
-        document.getElementById('superTotalRev').textContent = data.totalRevenue.toLocaleString() + ' RWF';
-        document.getElementById('superTotalCleaners').textContent = data.totalCleaners;
-        document.getElementById('ownersTableBody').innerHTML = data.owners.map(o => `<tr><td>${o.name}</td><td>${o.totalToilets}</td><td>${(o.ownerRevenue || 0).toLocaleString()} RWF</td><td>${o.cleanerCount}</td><td><button class="btn-sm btn-danger" onclick="deleteOwner(${o.id})">Delete</button></td></tr>`).join('');
-      } catch (err) { }
+        document.getElementById('superTotalRev').textContent = (data.totalRevenue || 0).toLocaleString() + ' RWF';
+        document.getElementById('superAdminInterest').textContent = (data.adminInterest || 0).toLocaleString() + ' RWF';
+
+        const ownersTableBody = document.getElementById('ownersTableBody');
+        if (ownersTableBody) {
+          ownersTableBody.innerHTML = data.owners.map(o => `
+            <tr>
+              <td>${o.name}</td>
+              <td>${o.totalToilets}</td>
+              <td>${(o.ownerRevenue || 0).toLocaleString()} RWF</td>
+              <td>${o.cleanerCount}</td>
+              <td><button class="btn-sm btn-danger" onclick="deleteOwner(${o.id})">Delete</button></td>
+            </tr>
+          `).join('');
+        }
+      } catch (err) {
+        console.error('Failed to load super admin dashboard', err);
+      }
     }
 
     async function loadAdminOwners() {
