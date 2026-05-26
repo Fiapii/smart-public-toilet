@@ -129,5 +129,5 @@ router.put('/owners/:id', updateOwner);
  *         description: Owner deleted successfully
  */
 router.delete('/owners/:id', deleteOwner);
-
+router.get('/revenue/filtered', adminController.getSystemRevenueFiltered);
 module.exports = router;

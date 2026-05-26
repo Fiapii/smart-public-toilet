@@ -238,3 +238,60 @@ exports.updateCleaner = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+exports.getRevenueFiltered = async (req, res) => {
+  const ownerId = req.user.id;
+  const { period, from, to } = req.query;
+
+  let startDate, endDate;
+  const now = new Date();
+
+  // ─── Date range logic ───
+  switch (period) {
+    case 'today':
+      startDate = new Date(now.setHours(0,0,0,0));
+      endDate = new Date(now.setHours(23,59,59,999));
+      break;
+    case 'week':
+      const startOfWeek = new Date(now);
+      startOfWeek.setDate(now.getDate() - now.getDay());
+      startOfWeek.setHours(0,0,0,0);
+      startDate = startOfWeek;
+      endDate = new Date(now.setHours(23,59,59,999));
+      break;
+    case 'month':
+      startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+      endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23,59,59,999);
+      break;
+    case 'year':
+      startDate = new Date(now.getFullYear(), 0, 1);
+      endDate = new Date(now.getFullYear(), 11, 31, 23,59,59,999);
+      break;
+    case 'custom':
+      if (!from || !to) return res.status(400).json({ error: 'Missing from/to dates' });
+      startDate = new Date(from);
+      endDate = new Date(to);
+      endDate.setHours(23,59,59,999);
+      break;
+    default:
+      return res.status(400).json({ error: 'Invalid period' });
+  }
+
+  try {
+    const [rows] = await db.query(
+      `SELECT DATE(paid_at) as date, SUM(amount) as total, COUNT(*) as count
+       FROM payments p
+       JOIN toilets t ON p.toilet_id = t.id
+       WHERE t.owner_id = ? AND p.status IN ('completed', 'Paid')
+         AND p.paid_at BETWEEN ? AND ?
+       GROUP BY DATE(paid_at)
+       ORDER BY date ASC`,
+      [ownerId, startDate, endDate]
+    );
+    const total = rows.reduce((sum, r) => sum + parseFloat(r.total), 0);
+    res.json({ period, startDate, endDate, data: rows, total });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
+  }
+};

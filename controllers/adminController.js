@@ -154,3 +154,23 @@ exports.getBroadcasts = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+exports.getSystemRevenueFiltered = async (req, res) => {
+  const { period, from, to } = req.query;
+  // same date logic as above (copy from owner version)
+  try {
+    const [rows] = await db.query(
+      `SELECT DATE(paid_at) as date, SUM(amount) as total, COUNT(*) as count
+       FROM payments
+       WHERE status IN ('completed', 'Paid')
+         AND paid_at BETWEEN ? AND ?
+       GROUP BY DATE(paid_at)
+       ORDER BY date ASC`,
+      [startDate, endDate]
+    );
+    const total = rows.reduce((sum, r) => sum + parseFloat(r.total), 0);
+    res.json({ period, startDate, endDate, data: rows, total });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};

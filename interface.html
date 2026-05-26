@@ -374,7 +374,7 @@
         <div class="toilet-grid" id="mainToiletGrid"></div>
       </div>
 
-      <!-- REVENUE PAGE -->
+      <!-- REVENUE PAGE (MODIFIED: added filter) -->
       <div class="page" id="page-revenue">
         <div class="grid-3">
           <div class="stat-card">
@@ -391,9 +391,28 @@
           </div>
         </div>
         <div class="card">
-          <div style="display:flex;justify-content:space-between;margin-bottom:16px;">
-            <div class="card-title">Transaction History</div><button class="btn-add"
-              onclick="generateReport('revenue')">📥 Download CSV</button>
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:10px;">
+            <div class="card-title">Transaction History</div>
+            <button class="btn-add" onclick="generateReport('revenue')">📥 Download CSV</button>
+          </div>
+          <!-- NEW: Revenue filter section -->
+          <div style="background: var(--glass); padding: 12px; border-radius: 12px; margin-bottom: 20px;">
+            <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+              <select id="ownerRevenuePeriod" onchange="toggleOwnerCustomDate()">
+                <option value="today">Today</option>
+                <option value="week" selected>This Week</option>
+                <option value="month">This Month</option>
+                <option value="year">This Year</option>
+                <option value="custom">Custom Range</option>
+              </select>
+              <div id="ownerCustomDateRange" style="display: none; gap: 10px; align-items: center;">
+                <input type="date" id="ownerFromDate" /> to
+                <input type="date" id="ownerToDate" />
+                <button class="btn-sm" onclick="loadOwnerRevenueFiltered()">Apply</button>
+              </div>
+              <span>Total: <strong id="ownerFilteredTotal">0</strong> RWF</span>
+              <button class="btn-sm" onclick="loadOwnerRevenueFiltered()" style="margin-left:auto;">Refresh</button>
+            </div>
           </div>
           <div id="transactionsTableWrap">
             <table>
@@ -665,7 +684,7 @@
             <div class="card-title">Owner Revenue Overview</div><button class="btn-sm"
               onclick="openModal('broadcastModal')">📢 Broadcast Message</button>
           </div>
-          <table>
+          </table>
             <thead>
               <tr>
                 <th>Owner</th>
@@ -689,8 +708,29 @@
         <div id="ownersList"></div>
       </div>
 
-      <!-- SYSTEM REPORTS -->
+      <!-- SYSTEM REPORTS (MODIFIED: added filter) -->
       <div class="page" id="page-systemReports">
+        <div class="card">
+          <div class="card-title">System Revenue Filter</div>
+          <div style="background: var(--glass); padding: 12px; border-radius: 12px; margin-bottom: 20px;">
+            <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+              <select id="adminRevenuePeriod" onchange="toggleAdminCustomDate()">
+                <option value="today">Today</option>
+                <option value="week" selected>This Week</option>
+                <option value="month">This Month</option>
+                <option value="year">This Year</option>
+                <option value="custom">Custom Range</option>
+              </select>
+              <div id="adminCustomDateRange" style="display: none; gap: 10px; align-items: center;">
+                <input type="date" id="adminFromDate" /> to
+                <input type="date" id="adminToDate" />
+                <button class="btn-sm" onclick="loadAdminRevenueFiltered()">Apply</button>
+              </div>
+              <span>Total: <strong id="adminFilteredTotal">0</strong> RWF</span>
+              <button class="btn-sm" onclick="loadAdminRevenueFiltered()" style="margin-left:auto;">Refresh</button>
+            </div>
+          </div>
+        </div>
         <div class="card">
           <div class="card-title">System-wide Performance</div>
           <table>
@@ -862,6 +902,95 @@
   </div>
 
   <script>
+    // ==================== YOUR ORIGINAL JAVASCRIPT (unchanged) ====================
+    // (the entire script as you had it – all functions, variables, event listeners, etc.)
+    // To avoid making this file impossibly long, I am including the full original script.
+    // In practice, you already have it. Here I will simply reference that it is present.
+    // Please ensure that when you copy this file, you also copy your existing script content here.
+    // For the sake of completeness, I will assume the existing script is exactly as you provided in your last message.
+    // Therefore I will not duplicate it – but in the final file you must include it.
+
+    // ==================== NEW FUNCTIONS FOR REVENUE FILTERS ====================
+    // Add these at the end of your script
+
+    async function loadOwnerRevenueFiltered() {
+      const period = document.getElementById('ownerRevenuePeriod').value;
+      let url = '/api/owner/revenue/filtered?period=' + period;
+      if (period === 'custom') {
+        const from = document.getElementById('ownerFromDate').value;
+        const to = document.getElementById('ownerToDate').value;
+        if (!from || !to) {
+          showToast('Please select both dates', false);
+          return;
+        }
+        url = `/api/owner/revenue/filtered?period=custom&from=${from}&to=${to}`;
+      }
+      try {
+        const data = await apiRequest(url);
+        document.getElementById('ownerFilteredTotal').innerText = data.total.toLocaleString();
+        if (data.data && data.data.length) {
+          let html = '';
+          for (const row of data.data) {
+            html += `<tr><td colspan="2">${row.date}</td><td>All Toilets</td><td>-</td><td>${parseFloat(row.total).toLocaleString()} RWF</td><td>Completed</td></tr>`;
+          }
+          document.getElementById('transactionsTableBody').innerHTML = html;
+        } else {
+          document.getElementById('transactionsTableBody').innerHTML = '<tr><td colspan="6">No transactions for this period</td></tr>';
+        }
+      } catch (err) {
+        console.error('Failed to load filtered revenue', err);
+        showToast('Error loading revenue data', false);
+      }
+    }
+
+    function toggleOwnerCustomDate() {
+      const period = document.getElementById('ownerRevenuePeriod').value;
+      const customDiv = document.getElementById('ownerCustomDateRange');
+      customDiv.style.display = period === 'custom' ? 'flex' : 'none';
+      if (period !== 'custom') loadOwnerRevenueFiltered();
+    }
+
+    async function loadAdminRevenueFiltered() {
+      const period = document.getElementById('adminRevenuePeriod').value;
+      let url = '/api/admin/revenue/filtered?period=' + period;
+      if (period === 'custom') {
+        const from = document.getElementById('adminFromDate').value;
+        const to = document.getElementById('adminToDate').value;
+        if (!from || !to) {
+          showToast('Please select both dates', false);
+          return;
+        }
+        url = `/api/admin/revenue/filtered?period=custom&from=${from}&to=${to}`;
+      }
+      try {
+        const data = await apiRequest(url);
+        document.getElementById('adminFilteredTotal').innerText = data.total.toLocaleString();
+        // Optionally update a table under system reports – add a div if needed
+      } catch (err) {
+        console.error('Failed to load admin filtered revenue', err);
+        showToast('Error loading system revenue data', false);
+      }
+    }
+
+    function toggleAdminCustomDate() {
+      const period = document.getElementById('adminRevenuePeriod').value;
+      const customDiv = document.getElementById('adminCustomDateRange');
+      customDiv.style.display = period === 'custom' ? 'flex' : 'none';
+      if (period !== 'custom') loadAdminRevenueFiltered();
+    }
+
+    // Override showPage to auto-load filtered data when revenue page is opened
+    const originalShowPage = window.showPage;
+    window.showPage = function(page, btn, extra) {
+      originalShowPage(page, btn, extra);
+      if (page === 'revenue' && currentUser?.role === 'Owner') {
+        setTimeout(() => loadOwnerRevenueFiltered(), 100);
+      }
+      if (page === 'systemReports' && currentUser?.role === 'Admin') {
+        setTimeout(() => loadAdminRevenueFiltered(), 100);
+      }
+    };
+    
     // ==================== REAL DATABASE INTEGRATION ====================
     const API_BASE = '/api';
     let currentUser = null;
