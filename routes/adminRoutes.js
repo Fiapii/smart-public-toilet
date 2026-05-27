@@ -129,5 +129,8 @@ router.put('/owners/:id', updateOwner);
  *         description: Owner deleted successfully
  */
 router.delete('/owners/:id', deleteOwner);
-router.get('/revenue/filtered', adminController.getSystemRevenueFiltered);
+
+// TODO: Add admin revenue filter later – remove this line to fix the server start
+// router.get('/revenue/filtered', adminController.getSystemRevenueFiltered);
+
 module.exports = router;
