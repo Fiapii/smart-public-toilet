@@ -1,6 +1,6 @@
 const express = require('express');
 const { protect, authorize } = require('../middleware/authMiddleware');
-const { getAllOwners, createOwner, getOwnerById, updateOwner, deleteOwner, getAdminDashboard, sendBroadcast, getBroadcasts } = require('../controllers/adminController');
+const adminController = require('../controllers/adminController'); // import the whole controller
 
 const router = express.Router();
 
@@ -27,10 +27,10 @@ router.use(authorize('Admin'));
  *       200:
  *         description: List of owners
  */
-router.get('/dashboard', getAdminDashboard);
-router.get('/owners', getAllOwners);
-router.get('/broadcasts', getBroadcasts);
-router.post('/broadcast', sendBroadcast);
+router.get('/dashboard', adminController.getAdminDashboard);
+router.get('/owners', adminController.getAllOwners);
+router.get('/broadcasts', adminController.getBroadcasts);
+router.post('/broadcast', adminController.sendBroadcast);
 
 /**
  * @swagger
@@ -57,7 +57,7 @@ router.post('/broadcast', sendBroadcast);
  *       201:
  *         description: Owner created successfully
  */
-router.post('/owners', createOwner);
+router.post('/owners', adminController.createOwner);
 
 /**
  * @swagger
@@ -77,7 +77,7 @@ router.post('/owners', createOwner);
  *       200:
  *         description: Owner details
  */
-router.get('/owners/:id', getOwnerById);
+router.get('/owners/:id', adminController.getOwnerById);
 
 /**
  * @swagger
@@ -108,7 +108,7 @@ router.get('/owners/:id', getOwnerById);
  *       200:
  *         description: Owner updated successfully
  */
-router.put('/owners/:id', updateOwner);
+router.put('/owners/:id', adminController.updateOwner);
 
 /**
  * @swagger
@@ -128,9 +128,9 @@ router.put('/owners/:id', updateOwner);
  *       200:
  *         description: Owner deleted successfully
  */
-router.delete('/owners/:id', deleteOwner);
+router.delete('/owners/:id', adminController.deleteOwner);
 
-// TODO: Add admin revenue filter later – remove this line to fix the server start
-// router.get('/revenue/filtered', adminController.getSystemRevenueFiltered);
+// Revenue filter endpoint (for admin dashboard)
+router.get('/revenue/filtered', adminController.getSystemRevenueFiltered);
 
 module.exports = router;

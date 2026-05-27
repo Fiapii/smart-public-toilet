@@ -155,9 +155,46 @@ exports.getBroadcasts = async (req, res) => {
   }
 };
 
+// Get system revenue filtered by date range (for admin dashboard)
 exports.getSystemRevenueFiltered = async (req, res) => {
   const { period, from, to } = req.query;
-  // same date logic as above (copy from owner version)
+
+  let startDate, endDate;
+  const now = new Date();
+
+  // Date range logic
+  switch (period) {
+    case 'today':
+      startDate = new Date(now.setHours(0, 0, 0, 0));
+      endDate = new Date(now.setHours(23, 59, 59, 999));
+      break;
+    case 'week':
+      const startOfWeek = new Date(now);
+      startOfWeek.setDate(now.getDate() - now.getDay());
+      startOfWeek.setHours(0, 0, 0, 0);
+      startDate = startOfWeek;
+      endDate = new Date(now.setHours(23, 59, 59, 999));
+      break;
+    case 'month':
+      startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+      endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+      break;
+    case 'year':
+      startDate = new Date(now.getFullYear(), 0, 1);
+      endDate = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999);
+      break;
+    case 'custom':
+      if (!from || !to) {
+        return res.status(400).json({ error: 'Missing from/to dates' });
+      }
+      startDate = new Date(from);
+      endDate = new Date(to);
+      endDate.setHours(23, 59, 59, 999);
+      break;
+    default:
+      return res.status(400).json({ error: 'Invalid period' });
+  }
+
   try {
     const [rows] = await db.query(
       `SELECT DATE(paid_at) as date, SUM(amount) as total, COUNT(*) as count
@@ -171,6 +208,7 @@ exports.getSystemRevenueFiltered = async (req, res) => {
     const total = rows.reduce((sum, r) => sum + parseFloat(r.total), 0);
     res.json({ period, startDate, endDate, data: rows, total });
   } catch (error) {
+    console.error('Revenue filter error:', error);
     res.status(500).json({ error: error.message });
   }
 };
