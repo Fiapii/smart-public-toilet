@@ -68,5 +68,5 @@ router.post('/toilet', addToilet);
 router.post('/toilets', addToilet);
 router.get('/complaints', getComplaints);
 router.put('/complaints/:id/resolve', resolveComplaint);
-router.get('/revenue/filtered', ownerController.getRevenueFiltered);
+//router.get('/revenue/filtered', ownerController.getRevenueFiltered);
 module.exports = router;
