@@ -1,10 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SmartLoo — Quick Access</title>
-  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;700&display=swap"
+    rel="stylesheet">
   <style>
     :root {
       --accent: #2b5ce6;
@@ -17,7 +19,13 @@
       --success: #15a066;
       --danger: #ef4444;
     }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
     body {
       font-family: 'DM Sans', sans-serif;
       background: var(--bg);
@@ -30,10 +38,33 @@
       justify-content: center;
       padding: 20px;
     }
-    .container { width: 100%; max-width: 400px; text-align: center; animation: fadeIn 0.8s ease-out; }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-    .logo { font-family: 'Syne', sans-serif; font-size: 24px; font-weight: 800; color: var(--accent); margin-bottom: 8px; }
-    .sub-title { color: var(--text-dim); font-size: 14px; margin-bottom: 48px; }
+
+    .container {
+      width: 100%;
+      max-width: 400px;
+      text-align: center;
+      animation: fadeIn 0.8s ease-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .logo {
+      font-family: 'Syne', sans-serif;
+      font-size: 24px;
+      font-weight: 800;
+      color: var(--accent);
+      margin-bottom: 8px;
+    }
+
+    .sub-title {
+      color: var(--text-dim);
+      font-size: 14px;
+      margin-bottom: 48px;
+    }
+
     .status-badge {
       margin-bottom: 20px;
       padding: 8px 16px;
@@ -47,8 +78,19 @@
       backdrop-filter: blur(4px);
       cursor: pointer;
     }
-    .status-free { background: rgba(21, 160, 102, 0.2); color: var(--success); border: 1px solid var(--success); }
-    .status-occupied { background: rgba(239, 68, 68, 0.2); color: var(--danger); border: 1px solid var(--danger); }
+
+    .status-free {
+      background: rgba(21, 160, 102, 0.2);
+      color: var(--success);
+      border: 1px solid var(--success);
+    }
+
+    .status-occupied {
+      background: rgba(239, 68, 68, 0.2);
+      color: var(--danger);
+      border: 1px solid var(--danger);
+    }
+
     .action-card {
       background: var(--glass);
       backdrop-filter: blur(12px);
@@ -58,6 +100,7 @@
       margin-bottom: 20px;
       transition: transform 0.3s ease;
     }
+
     .btn-main {
       width: 100%;
       padding: 18px;
@@ -73,11 +116,33 @@
       gap: 12px;
       margin-bottom: 16px;
     }
-    .btn-pay { background: var(--accent); color: white; box-shadow: 0 8px 24px rgba(43, 92, 230, 0.3); }
-    .btn-pay:hover:not(:disabled) { background: var(--accent-dark); transform: translateY(-2px); }
-    .btn-pay:disabled { opacity: 0.5; cursor: not-allowed; }
-    .btn-suggest { background: var(--glass); color: white; border: 1px solid var(--glass-border); }
-    .btn-suggest:hover { background: rgba(255, 255, 255, 0.1); }
+
+    .btn-pay {
+      background: var(--accent);
+      color: white;
+      box-shadow: 0 8px 24px rgba(43, 92, 230, 0.3);
+    }
+
+    .btn-pay:hover:not(:disabled) {
+      background: var(--accent-dark);
+      transform: translateY(-2px);
+    }
+
+    .btn-pay:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .btn-suggest {
+      background: var(--glass);
+      color: white;
+      border: 1px solid var(--glass-border);
+    }
+
+    .btn-suggest:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
     .modal {
       display: none;
       position: fixed;
@@ -88,9 +153,26 @@
       justify-content: center;
       padding: 20px;
     }
-    .modal.active { display: flex; }
-    .modal-content { background: #1a1c24; border-radius: 24px; padding: 32px; width: 100%; max-width: 360px; text-align: center; }
-    .modal-title { font-family: 'Syne', sans-serif; font-size: 20px; margin-bottom: 24px; }
+
+    .modal.active {
+      display: flex;
+    }
+
+    .modal-content {
+      background: #1a1c24;
+      border-radius: 24px;
+      padding: 32px;
+      width: 100%;
+      max-width: 360px;
+      text-align: center;
+    }
+
+    .modal-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 20px;
+      margin-bottom: 24px;
+    }
+
     input, textarea {
       width: 100%;
       padding: 16px;
@@ -102,12 +184,30 @@
       margin-bottom: 20px;
       outline: none;
       text-align: center;
-      font-family: inherit;
     }
-    textarea { text-align: left; resize: vertical; }
-    input:focus, textarea:focus { border-color: var(--accent); }
-    .status-msg { margin-top: 16px; font-size: 14px; color: var(--accent); }
-    .success-icon { font-size: 48px; color: var(--success); margin-bottom: 16px; display: none; }
+
+    textarea {
+      text-align: left;
+      resize: vertical;
+    }
+
+    input:focus, textarea:focus {
+      border-color: var(--accent);
+    }
+
+    .status-msg {
+      margin-top: 16px;
+      font-size: 14px;
+      color: var(--accent);
+    }
+
+    .success-icon {
+      font-size: 48px;
+      color: var(--success);
+      margin-bottom: 16px;
+      display: none;
+    }
+
     .loader {
       border: 3px solid rgba(255, 255, 255, 0.1);
       border-top: 3px solid var(--accent);
@@ -118,259 +218,325 @@
       display: none;
       margin: 0 auto;
     }
-    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-    .occupy-message { margin-top: 12px; font-size: 12px; color: var(--danger); background: rgba(239,68,68,0.1); padding: 8px; border-radius: 12px; display: none; }
-    .refresh-btn { background: none; border: 1px solid var(--glass-border); border-radius: 20px; padding: 4px 12px; font-size: 11px; cursor: pointer; margin-left: 10px; }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .occupy-message {
+      margin-top: 12px;
+      font-size: 12px;
+      color: var(--danger);
+      background: rgba(239,68,68,0.1);
+      padding: 8px;
+      border-radius: 12px;
+      display: none;
+    }
+
+    .refresh-btn {
+      background: none;
+      border: 1px solid var(--glass-border);
+      border-radius: 20px;
+      padding: 4px 12px;
+      font-size: 11px;
+      cursor: pointer;
+      margin-left: 10px;
+    }
   </style>
 </head>
+
 <body>
 
-<div class="container">
-  <div class="logo">PUBLIC TOILET</div>
-  <div class="sub-title">Touchless Public Toilet System</div>
+  <div class="container">
+    <div class="logo">PUBLIC TOILET</div>
+    <div class="sub-title">Touchless Public Toilet System</div>
 
-  <div id="statusBadge" class="status-badge status-free" onclick="checkToiletStatus(true)">
-    <span id="statusIcon">🟢</span> <span id="statusText">Toilet Free</span>
-    <span class="refresh-btn">⟳</span>
+    <!-- Status badge (click to refresh) -->
+    <div id="statusBadge" class="status-badge status-free" onclick="checkToiletStatus(true)">
+      <span id="statusIcon">🟢</span> <span id="statusText">Toilet Free</span>
+      <span class="refresh-btn">⟳</span>
+    </div>
+
+    <div class="action-card">
+      <button class="btn-main btn-pay" id="payButton" onclick="openPayModal()">
+        <span>💳</span> Pay to Enter
+      </button>
+      <div style="font-size: 12px; color: var(--text-dim); margin-bottom: 24px;">
+        Fee: 100 RWF · Instant Access
+      </div>
+      <div id="occupyMessage" class="occupy-message">⚠️ Toilet currently occupied. Please wait.</div>
+      <button class="btn-main btn-suggest" onclick="openSuggestModal()">
+        <span>✍️</span> Suggestions
+      </button>
+    </div>
+
+    <div style="font-size: 11px; color: var(--text-dim);">
+      Designed by IRUMVA Fiacre IIT Engineer
+    </div>
   </div>
 
-  <div class="action-card">
-    <button class="btn-main btn-pay" id="payButton" onclick="openPayModal()">
-      <span>💳</span> Pay to Enter
-    </button>
-    <div style="font-size: 12px; color: var(--text-dim); margin-bottom: 24px;">
-      Fee: 100 RWF · Instant Access
+  <!-- Payment Modal -->
+  <div class="modal" id="payModal">
+    <div class="modal-content">
+      <div class="modal-title" id="mTitle">Enter Phone Number</div>
+      <div id="paymentInputs">
+        <input type="text" id="phoneNumber" placeholder="078xxxxxxx" maxlength="10">
+        <button class="btn-main btn-pay" id="initiatePayBtn" onclick="startPayment()">Initiate Payment</button>
+      </div>
+      <div id="loadingArea">
+        <div class="loader" id="payLoader"></div>
+        <div class="success-icon" id="successIcon">✓</div>
+        <div class="status-msg" id="statusMsg"></div>
+      </div>
+      <button class="btn-main btn-suggest" style="margin-top: 20px;" onclick="closeModal()">Close</button>
     </div>
-    <div id="occupyMessage" class="occupy-message">⚠️ Toilet currently occupied. Please wait.</div>
-    <button class="btn-main btn-suggest" onclick="openSuggestModal()">
-      <span>✍️</span> Suggestions
-    </button>
   </div>
 
-  <div style="font-size: 11px; color: var(--text-dim);">
-    Designed by IRUMVA Fiacre IIT Engineer
+  <!-- Suggestions Modal -->
+  <div class="modal" id="suggestModal">
+    <div class="modal-content">
+      <div class="modal-title">Share your Feedback</div>
+      <div id="suggestInputs">
+        <textarea id="suggestionText" placeholder="How can we improve?" rows="4"></textarea>
+        <button class="btn-main btn-pay" onclick="submitSuggestion()">Submit Feedback</button>
+      </div>
+      <div id="suggestSuccess" style="display:none;">
+        <div class="success-icon" style="display:block;">✓</div>
+        <div class="status-msg" style="color:var(--success);">Thank you for your feedback!</div>
+      </div>
+      <button class="btn-main btn-suggest" style="margin-top: 20px;" onclick="closeSuggestModal()">Close</button>
+    </div>
   </div>
-</div>
 
-<!-- Payment Modal -->
-<div class="modal" id="payModal">
-  <div class="modal-content">
-    <div class="modal-title" id="mTitle">Enter Phone Number</div>
-    <div id="paymentInputs">
-      <input type="text" id="phoneNumber" placeholder="078xxxxxxx" maxlength="10">
-      <button class="btn-main btn-pay" id="initiatePayBtn" onclick="startPayment()">Initiate Payment</button>
-    </div>
-    <div id="loadingArea">
-      <div class="loader" id="payLoader"></div>
-      <div class="success-icon" id="successIcon">✓</div>
-      <div class="status-msg" id="statusMsg"></div>
-    </div>
-    <button class="btn-main btn-suggest" style="margin-top: 20px;" onclick="closeModal()">Close</button>
-  </div>
-</div>
+  <script>
+    const API_BASE = '/api';
+    let pollInterval = null;
+    let targetToiletId = null;
+    let isToiletOccupied = false;
 
-<!-- Suggestions Modal -->
-<div class="modal" id="suggestModal">
-  <div class="modal-content">
-    <div class="modal-title">Share your Feedback</div>
-    <div id="suggestInputs">
-      <textarea id="suggestionText" placeholder="How can we improve?" rows="4"></textarea>
-      <button class="btn-main btn-pay" onclick="submitSuggestion()">Submit Feedback</button>
-    </div>
-    <div id="suggestSuccess" style="display:none;">
-      <div class="success-icon" style="display:block;">✓</div>
-      <div class="status-msg" style="color:var(--success);">Thank you for your feedback!</div>
-    </div>
-    <button class="btn-main btn-suggest" style="margin-top: 20px;" onclick="closeSuggestModal()">Close</button>
-  </div>
-</div>
-
-<script>
-const API_BASE = '/api';
-let pollInterval = null;
-let targetToiletId = 1;
-let isToiletOccupied = false;
-
-async function fetchConfig() {
-  try {
-    const res = await fetch(`${API_BASE}/public/toilets`);
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-    const toilets = await res.json();
-    if (toilets && toilets.length > 0) {
-      targetToiletId = toilets[0].id;
-      isToiletOccupied = toilets[0].is_occupied === 1;
-      console.log(`[STATUS] Toilet ${targetToiletId} occupied: ${isToiletOccupied}`);
-      updateUIForOccupancy();
-    } else {
-      console.warn('No toilets returned');
-    }
-  } catch (err) {
-    console.error('fetchConfig error:', err);
-  }
-}
-
-async function checkToiletStatus(manual = false) {
-  try {
-    const res = await fetch(`${API_BASE}/public/toilets`);
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-    const toilets = await res.json();
-    if (toilets && toilets.length > 0) {
-      const newOccupied = toilets[0].is_occupied === 1;
-      if (newOccupied !== isToiletOccupied) {
-        console.log(`[STATUS] Changed: ${isToiletOccupied} -> ${newOccupied}`);
-        isToiletOccupied = newOccupied;
-        updateUIForOccupancy();
-      } else if (manual) {
-        updateUIForOccupancy(); // force UI refresh
+    // Fetch toilet config and status
+    async function fetchConfig() {
+      try {
+        const res = await fetch(`${API_BASE}/public/toilets`);
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const toilets = await res.json();
+        if (toilets && toilets.length > 0) {
+          targetToiletId = toilets[0].id;
+          isToiletOccupied = toilets[0].is_occupied === 1;
+          console.log(`[STATUS] Toilet ${targetToiletId} occupied: ${isToiletOccupied}`);
+          updateUIForOccupancy();
+        } else {
+          console.warn('No toilets returned');
+        }
+      } catch (err) {
+        console.error('fetchConfig error:', err);
       }
     }
-  } catch (err) {
-    console.error('checkToiletStatus error:', err);
-  }
-}
 
-function updateUIForOccupancy() {
-  const payButton = document.getElementById('payButton');
-  const statusBadge = document.getElementById('statusBadge');
-  const statusIcon = document.getElementById('statusIcon');
-  const statusText = document.getElementById('statusText');
-  const occupyMsg = document.getElementById('occupyMessage');
-  if (isToiletOccupied) {
-    payButton.disabled = true;
-    payButton.style.opacity = '0.5';
-    statusBadge.className = 'status-badge status-occupied';
-    statusIcon.innerHTML = '🔴';
-    statusText.innerHTML = 'Toilet Occupied';
-    occupyMsg.style.display = 'block';
-  } else {
-    payButton.disabled = false;
-    payButton.style.opacity = '1';
-    statusBadge.className = 'status-badge status-free';
-    statusIcon.innerHTML = '🟢';
-    statusText.innerHTML = 'Toilet Free';
-    occupyMsg.style.display = 'none';
-  }
-}
-
-// Initial fetch and periodic polling (every 2 seconds)
-fetchConfig();
-setInterval(() => checkToiletStatus(false), 2000);
-
-function openPayModal() {
-  if (isToiletOccupied) {
-    alert('Toilet is currently occupied. Please wait.');
-    return;
-  }
-  document.getElementById('payModal').classList.add('active');
-  resetModal();
-}
-
-function closeModal() { document.getElementById('payModal').classList.remove('active'); if (pollInterval) clearInterval(pollInterval); }
-function openSuggestModal() { document.getElementById('suggestModal').classList.add('active'); document.getElementById('suggestInputs').style.display = 'block'; document.getElementById('suggestSuccess').style.display = 'none'; }
-function closeSuggestModal() { document.getElementById('suggestModal').classList.remove('active'); }
-
-async function submitSuggestion() {
-  const text = document.getElementById('suggestionText').value.trim();
-  if (!text) return alert('Please enter your suggestion');
-  try {
-    const res = await fetch(`${API_BASE}/public/complaints`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ toilet_id: targetToiletId, description: text })
-    });
-    const data = await res.json();
-    if (data.success) {
-      document.getElementById('suggestInputs').style.display = 'none';
-      document.getElementById('suggestSuccess').style.display = 'block';
-      document.getElementById('suggestionText').value = '';
-    } else {
-      alert('Failed: ' + (data.error || 'Unknown error'));
+    // Manual or automatic status check
+    async function checkToiletStatus(manual = false) {
+      try {
+        const res = await fetch(`${API_BASE}/public/toilets`);
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const toilets = await res.json();
+        if (toilets && toilets.length > 0) {
+          const newOccupied = toilets[0].is_occupied === 1;
+          if (newOccupied !== isToiletOccupied) {
+            console.log(`[STATUS] Changed: ${isToiletOccupied} -> ${newOccupied}`);
+            isToiletOccupied = newOccupied;
+            updateUIForOccupancy();
+          } else if (manual) {
+            // Force refresh UI
+            updateUIForOccupancy();
+          }
+        }
+      } catch (err) {
+        console.error('checkToiletStatus error:', err);
+      }
     }
-  } catch (err) { alert('Error sending feedback'); }
-}
 
-function resetModal() {
-  document.getElementById('paymentInputs').style.display = 'block';
-  document.getElementById('payLoader').style.display = 'none';
-  document.getElementById('successIcon').style.display = 'none';
-  document.getElementById('statusMsg').innerHTML = '';
-  document.getElementById('mTitle').innerText = 'Enter Phone Number';
-}
+    function updateUIForOccupancy() {
+      const payButton = document.getElementById('payButton');
+      const statusBadge = document.getElementById('statusBadge');
+      const statusIcon = document.getElementById('statusIcon');
+      const statusText = document.getElementById('statusText');
+      const occupyMsg = document.getElementById('occupyMessage');
+      if (isToiletOccupied) {
+        payButton.disabled = true;
+        payButton.style.opacity = '0.5';
+        statusBadge.className = 'status-badge status-occupied';
+        statusIcon.innerHTML = '🔴';
+        statusText.innerHTML = 'Toilet Occupied';
+        occupyMsg.style.display = 'block';
+      } else {
+        payButton.disabled = false;
+        payButton.style.opacity = '1';
+        statusBadge.className = 'status-badge status-free';
+        statusIcon.innerHTML = '🟢';
+        statusText.innerHTML = 'Toilet Free';
+        occupyMsg.style.display = 'none';
+      }
+    }
 
-async function startPayment() {
-  if (isToiletOccupied) {
-    alert('Toilet is now occupied. Please wait.');
-    closeModal();
-    return;
-  }
-  const phone = document.getElementById('phoneNumber').value;
-  if (!phone || phone.length < 10) { alert('Please enter a valid phone number (min 10 digits)'); return; }
-  let formattedPhone = phone;
-  if (phone.startsWith('07')) formattedPhone = '250' + phone.slice(1);
-  else if (!phone.startsWith('250')) formattedPhone = '250' + phone;
+    // Initial fetch and periodic polling (every 2 seconds)
+    fetchConfig();
+    setInterval(() => checkToiletStatus(false), 2000);
 
-  document.getElementById('paymentInputs').style.display = 'none';
-  document.getElementById('payLoader').style.display = 'block';
-  document.getElementById('statusMsg').innerHTML = 'Contacting PayPack...';
-  document.getElementById('mTitle').innerText = 'Payment in Progress';
+    function openPayModal() {
+      if (isToiletOccupied) {
+        alert('Toilet is currently occupied. Please wait.');
+        return;
+      }
+      document.getElementById('payModal').classList.add('active');
+      resetModal();
+    }
 
-  try {
-    const res = await fetch(`${API_BASE}/payments/create`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ toilet_id: targetToiletId, amount: 100, phone_number: formattedPhone })
-    });
-    const data = await res.json();
-    if (data.success) {
-      document.getElementById('statusMsg').innerHTML = 'Please check your phone and enter your PIN';
-      startPolling(data.transaction_id);
-    } else {
-      let errorMsg = data.error || 'Unknown error';
-      if (data.details) errorMsg += ': ' + data.details;
-      document.getElementById('statusMsg').innerHTML = errorMsg;
-      document.getElementById('statusMsg').style.color = '#ff4d4d';
+    function closeModal() {
+      document.getElementById('payModal').classList.remove('active');
+      if (pollInterval) clearInterval(pollInterval);
+    }
+
+    function openSuggestModal() {
+      document.getElementById('suggestModal').classList.add('active');
+      document.getElementById('suggestInputs').style.display = 'block';
+      document.getElementById('suggestSuccess').style.display = 'none';
+    }
+
+    function closeSuggestModal() {
+      document.getElementById('suggestModal').classList.remove('active');
+    }
+
+    async function submitSuggestion() {
+      if (!targetToiletId) await fetchConfig();
+      const text = document.getElementById('suggestionText').value.trim();
+      if (!text) return alert('Please enter your suggestion');
+      try {
+        const res = await fetch(`${API_BASE}/public/complaints`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ toilet_id: targetToiletId, description: text })
+        });
+        const data = await res.json();
+        if (data.success) {
+          document.getElementById('suggestInputs').style.display = 'none';
+          document.getElementById('suggestSuccess').style.display = 'block';
+          document.getElementById('suggestionText').value = '';
+        } else {
+          alert('Failed: ' + (data.error || 'Unknown error'));
+        }
+      } catch (err) {
+        alert('Error sending feedback');
+      }
+    }
+
+    function resetModal() {
+      document.getElementById('paymentInputs').style.display = 'block';
       document.getElementById('payLoader').style.display = 'none';
-      setTimeout(() => { if (document.getElementById('payModal').classList.contains('active')) { document.getElementById('paymentInputs').style.display = 'block'; document.getElementById('statusMsg').innerHTML = ''; } }, 4000);
+      document.getElementById('successIcon').style.display = 'none';
+      document.getElementById('statusMsg').innerHTML = '';
+      document.getElementById('mTitle').innerText = 'Enter Phone Number';
     }
-  } catch (err) {
-    document.getElementById('statusMsg').innerHTML = 'Connection error. Check network.';
-    document.getElementById('statusMsg').style.color = '#ff4d4d';
-    document.getElementById('payLoader').style.display = 'none';
-    setTimeout(() => { if (document.getElementById('payModal').classList.contains('active')) { document.getElementById('paymentInputs').style.display = 'block'; document.getElementById('statusMsg').innerHTML = ''; } }, 3000);
-  }
-}
 
-function startPolling(txnId) {
-  pollInterval = setInterval(async () => {
-    try {
-      const res = await fetch(`${API_BASE}/payments/status/${txnId}`);
-      const data = await res.json();
-      if (data.status === 'successful') {
-        clearInterval(pollInterval);
-        showSuccess(data);
-      } else if (data.status === 'failed' || data.status === 'expired') {
-        clearInterval(pollInterval);
-        document.getElementById('statusMsg').innerHTML = data.message || 'Payment cancelled/failed.';
+    async function startPayment() {
+      if (isToiletOccupied) {
+        alert('Toilet is now occupied. Please wait.');
+        closeModal();
+        return;
+      }
+      if (!targetToiletId) await fetchConfig();
+      const phone = document.getElementById('phoneNumber').value;
+      if (!phone || phone.length < 10) {
+        alert('Please enter a valid phone number (min 10 digits)');
+        return;
+      }
+      let formattedPhone = phone;
+      if (phone.startsWith('07')) formattedPhone = '250' + phone.slice(1);
+      else if (!phone.startsWith('250')) formattedPhone = '250' + phone;
+
+      document.getElementById('paymentInputs').style.display = 'none';
+      document.getElementById('payLoader').style.display = 'block';
+      document.getElementById('statusMsg').innerHTML = 'Contacting PayPack...';
+      document.getElementById('mTitle').innerText = 'Payment in Progress';
+
+      try {
+        const res = await fetch(`${API_BASE}/payments/create`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ toilet_id: targetToiletId, amount: 100, phone_number: formattedPhone })
+        });
+        const data = await res.json();
+        if (data.success) {
+          document.getElementById('statusMsg').innerHTML = 'Please check your phone and enter your PIN';
+          startPolling(data.transaction_id);
+        } else {
+          let errorMsg = data.error || 'Unknown error';
+          if (data.details) errorMsg += ': ' + data.details;
+          document.getElementById('statusMsg').innerHTML = errorMsg;
+          document.getElementById('statusMsg').style.color = '#ff4d4d';
+          document.getElementById('payLoader').style.display = 'none';
+          setTimeout(() => {
+            if (document.getElementById('payModal').classList.contains('active')) {
+              document.getElementById('paymentInputs').style.display = 'block';
+              document.getElementById('statusMsg').innerHTML = '';
+            }
+          }, 4000);
+        }
+      } catch (err) {
+        document.getElementById('statusMsg').innerHTML = 'Connection error. Check network.';
         document.getElementById('statusMsg').style.color = '#ff4d4d';
         document.getElementById('payLoader').style.display = 'none';
-        setTimeout(() => { if (document.getElementById('payModal').classList.contains('active')) { document.getElementById('paymentInputs').style.display = 'block'; document.getElementById('statusMsg').innerHTML = ''; } }, 4000);
-      } else {
-        document.getElementById('statusMsg').innerHTML = data.message || 'Waiting for confirmation...';
+        setTimeout(() => {
+          if (document.getElementById('payModal').classList.contains('active')) {
+            document.getElementById('paymentInputs').style.display = 'block';
+            document.getElementById('statusMsg').innerHTML = '';
+          }
+        }, 3000);
       }
-    } catch (err) { console.error('Polling error', err); }
-  }, 2000);
-}
+    }
 
-function showSuccess(data) {
-  document.getElementById('payLoader').style.display = 'none';
-  document.getElementById('successIcon').style.display = 'block';
-  let html = `<div style="font-size:16px; margin-bottom: 12px;">✅ Payment Received!</div><div style="font-size:18px; font-weight:bold; color: var(--accent); margin-bottom: 12px;">🚪 DOOR OPENING...</div>`;
-  if (data.transaction_id) html += `<small>Transaction: ${data.transaction_id}<br/>Amount: RWF ${data.amount || 100}</small>`;
-  document.getElementById('statusMsg').innerHTML = html;
-  document.getElementById('statusMsg').style.color = 'var(--success)';
-  document.getElementById('mTitle').innerText = '🎉 Welcome!';
-  setTimeout(() => closeModal(), 10000);
-}
-</script>
+    function startPolling(txnId) {
+      pollInterval = setInterval(async () => {
+        try {
+          const res = await fetch(`${API_BASE}/payments/status/${txnId}`);
+          const data = await res.json();
+          if (data.status === 'successful') {
+            clearInterval(pollInterval);
+            showSuccess(data);
+          } else if (data.status === 'failed' || data.status === 'expired') {
+            clearInterval(pollInterval);
+            document.getElementById('statusMsg').innerHTML = data.message || 'Payment cancelled/failed.';
+            document.getElementById('statusMsg').style.color = '#ff4d4d';
+            document.getElementById('payLoader').style.display = 'none';
+            setTimeout(() => {
+              if (document.getElementById('payModal').classList.contains('active')) {
+                document.getElementById('paymentInputs').style.display = 'block';
+                document.getElementById('statusMsg').innerHTML = '';
+              }
+            }, 4000);
+          } else {
+            document.getElementById('statusMsg').innerHTML = data.message || 'Waiting for confirmation...';
+          }
+        } catch (err) {
+          console.error('Polling error', err);
+        }
+      }, 2000);
+    }
+
+    function showSuccess(data) {
+      document.getElementById('payLoader').style.display = 'none';
+      document.getElementById('successIcon').style.display = 'block';
+      let html = `<div style="font-size:16px; margin-bottom: 12px;">✅ Payment Received!</div>
+                  <div style="font-size:18px; font-weight:bold; color: var(--accent); margin-bottom: 12px;">🚪 DOOR OPENING...</div>`;
+      if (data.transaction_id) {
+        html += `<small>Transaction: ${data.transaction_id}<br/>Amount: RWF ${data.amount || 100}</small>`;
+      }
+      document.getElementById('statusMsg').innerHTML = html;
+      document.getElementById('statusMsg').style.color = 'var(--success)';
+      document.getElementById('mTitle').innerText = '🎉 Welcome!';
+      setTimeout(() => closeModal(), 10000);
+    }
+  </script>
 </body>
+
 </html>
