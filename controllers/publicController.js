@@ -1,5 +1,6 @@
 const db = require('../config/db');
 
+// Submit a user complaint / suggestion
 exports.createComplaint = async (req, res) => {
   const { toilet_id, description } = req.body;
 
@@ -23,9 +24,12 @@ exports.createComplaint = async (req, res) => {
     res.status(500).json({ success: false, error: error.message });
   }
 };
+
+// Get list of public toilets (includes occupancy status)
 exports.getToilets = async (req, res) => {
   try {
-    const [toilets] = await db.query('SELECT id, location FROM `toilets`');
+    // Include is_occupied so the frontend knows if the toilet is free or occupied
+    const [toilets] = await db.query('SELECT id, location, is_occupied FROM `toilets`');
     res.json(toilets);
   } catch (error) {
     res.status(500).json({ error: error.message });
