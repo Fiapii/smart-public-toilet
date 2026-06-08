@@ -8,6 +8,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;700&display=swap"
     rel="stylesheet">
   <style>
+    /* (your existing styles - unchanged) */
     :root {
       --accent: #2b5ce6;
       --accent-dark: #1a3fa0;
@@ -315,6 +316,13 @@
     let targetToiletId = null;
     let isToiletOccupied = false;
 
+    // ================================================
+    // CONFIGURATION: Set the exact toilet ID you want to monitor.
+    // If left as null, the first toilet from the list will be used.
+    // Change this to 90001 (or your actual toilet ID) to avoid mismatches.
+    // ================================================
+    const TARGET_TOILET_ID = 90001;   // <-- SET YOUR TOILET ID HERE (or null to auto-detect)
+
     // Fetch toilet config and status
     async function fetchConfig() {
       try {
@@ -322,8 +330,19 @@
         if (!res.ok) throw new Error('HTTP ' + res.status);
         const toilets = await res.json();
         if (toilets && toilets.length > 0) {
-          targetToiletId = toilets[0].id;
-          isToiletOccupied = toilets[0].is_occupied === 1;
+          let selectedToilet;
+          if (TARGET_TOILET_ID !== null) {
+            // Find toilet with specific ID
+            selectedToilet = toilets.find(t => t.id === TARGET_TOILET_ID);
+            if (!selectedToilet) {
+              console.warn(`Toilet with ID ${TARGET_TOILET_ID} not found, falling back to first toilet.`);
+              selectedToilet = toilets[0];
+            }
+          } else {
+            selectedToilet = toilets[0];
+          }
+          targetToiletId = selectedToilet.id;
+          isToiletOccupied = selectedToilet.is_occupied === 1;
           console.log(`[STATUS] Toilet ${targetToiletId} occupied: ${isToiletOccupied}`);
           updateUIForOccupancy();
         } else {
@@ -341,13 +360,19 @@
         if (!res.ok) throw new Error('HTTP ' + res.status);
         const toilets = await res.json();
         if (toilets && toilets.length > 0) {
-          const newOccupied = toilets[0].is_occupied === 1;
+          let selectedToilet;
+          if (TARGET_TOILET_ID !== null) {
+            selectedToilet = toilets.find(t => t.id === TARGET_TOILET_ID);
+            if (!selectedToilet) selectedToilet = toilets[0];
+          } else {
+            selectedToilet = toilets[0];
+          }
+          const newOccupied = selectedToilet.is_occupied === 1;
           if (newOccupied !== isToiletOccupied) {
             console.log(`[STATUS] Changed: ${isToiletOccupied} -> ${newOccupied}`);
             isToiletOccupied = newOccupied;
             updateUIForOccupancy();
           } else if (manual) {
-            // Force refresh UI
             updateUIForOccupancy();
           }
         }
@@ -523,18 +548,60 @@
       }, 2000);
     }
 
-    function showSuccess(data) {
+    async function showSuccess(data) {
       document.getElementById('payLoader').style.display = 'none';
       document.getElementById('successIcon').style.display = 'block';
-      let html = `<div style="font-size:16px; margin-bottom: 12px;">✅ Payment Received!</div>
-                  <div style="font-size:18px; font-weight:bold; color: var(--accent); margin-bottom: 12px;">🚪 DOOR OPENING...</div>`;
-      if (data.transaction_id) {
-        html += `<small>Transaction: ${data.transaction_id}<br/>Amount: RWF ${data.amount || 100}</small>`;
+      document.getElementById('mTitle').innerText = '🎉 Payment Confirmed!';
+
+      // Trigger door open via hardware endpoint
+      let doorOpened = false;
+      if (targetToiletId) {
+        try {
+          const doorRes = await fetch(`${API_BASE}/hardware/payment-check/${targetToiletId}`);
+          const doorData = await doorRes.json();
+          if (doorData.command === 'OPEN_DOOR') {
+            doorOpened = true;
+            console.log('[DOOR] OPEN_DOOR command confirmed by server');
+          }
+        } catch (err) {
+          console.warn('[DOOR] Could not reach hardware endpoint:', err);
+        }
       }
-      document.getElementById('statusMsg').innerHTML = html;
+
+      // Animated countdown
+      let countdown = 5;
+      const render = (sec) => {
+        const txnInfo = data.transaction_id
+          ? `<small style="display:block;margin-top:12px;color:var(--text-dim);">Txn: ${data.transaction_id} &nbsp;|&nbsp; RWF ${data.amount || 100}</small>`
+          : '';
+        return `
+          <div style="font-size:15px;margin-bottom:10px;color:var(--success);">✅ Payment Received!</div>
+          <div style="font-size:40px;margin-bottom:4px;">🚪</div>
+          <div style="font-size:20px;font-weight:800;color:var(--accent);margin-bottom:6px;">DOOR IS OPENING</div>
+          <div style="font-size:13px;color:var(--text-dim);margin-bottom:14px;">${doorOpened ? 'Door command sent to ESP32' : 'Waiting for ESP32 to respond...'}</div>
+          <div style="font-size:36px;font-weight:900;color:var(--success);">${sec}</div>
+          <div style="font-size:12px;color:var(--text-dim);margin-top:4px;">seconds — please enter now</div>
+          ${txnInfo}
+        `;
+      };
+
       document.getElementById('statusMsg').style.color = 'var(--success)';
-      document.getElementById('mTitle').innerText = '🎉 Welcome!';
-      setTimeout(() => closeModal(), 10000);
+      document.getElementById('statusMsg').innerHTML = render(countdown);
+
+      const timer = setInterval(() => {
+        countdown--;
+        if (countdown <= 0) {
+          clearInterval(timer);
+          document.getElementById('statusMsg').innerHTML = `
+            <div style="font-size:15px;color:var(--success);">✅ Welcome! Enjoy your visit.</div>
+            <div style="font-size:13px;color:var(--text-dim);margin-top:8px;">This window will close shortly.</div>
+          `;
+          setTimeout(() => closeModal(), 3000);
+        } else {
+          const msgEl = document.getElementById('statusMsg');
+          if (msgEl) msgEl.innerHTML = render(countdown);
+        }
+      }, 1000);
     }
   </script>
 </body>
