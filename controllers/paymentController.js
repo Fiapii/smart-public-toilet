@@ -259,3 +259,82 @@ exports.getPendingPayment = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+// ═══════════════════════════════════════════════════════════════
+// MANUAL PAYMENT CONFIRMATION (For stuck payments)
+// ═══════════════════════════════════════════════════════════════
+// Admin/Owner can manually confirm a payment that PayPack marked as failed
+// but money was actually deducted
+exports.manualConfirmPayment = async (req, res) => {
+  const { transaction_id } = req.body;
+
+  if (!transaction_id) {
+    return res.status(400).json({ error: 'Transaction ID is required' });
+  }
+
+  try {
+    // Find the payment
+    const [payments] = await db.query(
+      'SELECT * FROM `payments` WHERE transaction_id = ?',
+      [transaction_id]
+    );
+
+    if (payments.length === 0) {
+      return res.status(404).json({ error: 'Payment not found' });
+    }
+
+    const payment = payments[0];
+
+    // Already completed?
+    if (payment.status === 'completed') {
+      return res.json({
+        success: true,
+        message: 'Payment already confirmed',
+        payment
+      });
+    }
+
+    // Mark as completed
+    await db.query(
+      'UPDATE `payments` SET status = "completed", paid_at = NOW() WHERE id = ?',
+      [payment.id]
+    );
+
+    // Update revenue
+    await db.query(
+      'UPDATE `toilets` SET revenue = revenue + ? WHERE id = ?',
+      [payment.amount, payment.toilet_id]
+    );
+
+    // Update occupancy
+    await db.query(
+      'UPDATE `toilets` SET is_occupied = 1 WHERE id = ?',
+      [payment.toilet_id]
+    );
+
+    // Log event
+    try {
+      const details = `[MANUAL CONFIRMATION] Payment ${payment.transaction_id} (RWF ${payment.amount}) manually marked as completed by admin/owner`;
+      await logAndBroadcast(payment.toilet_id, 'payment', details);
+    } catch (logErr) {
+      console.error('[MANUAL_CONFIRM_LOG_ERROR]', logErr.message);
+    }
+
+    console.log(`[MANUAL_CONFIRM] Payment ${transaction_id} manually confirmed for toilet ${payment.toilet_id}`);
+
+    return res.json({
+      success: true,
+      message: 'Payment manually confirmed',
+      payment: {
+        id: payment.id,
+        transaction_id: payment.transaction_id,
+        amount: payment.amount,
+        toilet_id: payment.toilet_id,
+        status: 'completed'
+      }
+    });
+  } catch (error) {
+    console.error('[MANUAL_CONFIRM] Error:', error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+};

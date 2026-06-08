@@ -3,7 +3,8 @@ const {
   momoCallback,
   createPayment,
   checkPaymentStatus,
-  getPendingPayment
+  getPendingPayment,
+  manualConfirmPayment
 } = require('../controllers/paymentController');
 
 const router = express.Router();
@@ -91,5 +92,28 @@ router.post('/momo-callback', momoCallback);
  *         description: Pending payment details
  */
 router.get('/pending/:toilet_id', getPendingPayment);
+
+/**
+ * @swagger
+ * /api/payments/manual-confirm:
+ *   post:
+ *     summary: Manually confirm a payment (for stuck/failed payments that were actually deducted)
+ *     tags: [Payments]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - transaction_id
+ *             properties:
+ *               transaction_id:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Payment manually confirmed
+ */
+router.post('/manual-confirm', manualConfirmPayment);
 
 module.exports = router;

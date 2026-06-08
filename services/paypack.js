@@ -89,19 +89,31 @@ class PaypackService {
       );
       if (!data) return { status: "pending", eventKind: null };
       
+      // Log raw response for debugging
+      console.log(`[PAYPACK_DEBUG] Txn ${transactionRef} - Raw response:`, JSON.stringify(data));
+      
       // Normalise status (case‑insensitive, map variations)
       let rawStatus = (data.status || "").toString().toLowerCase().trim();
       let mappedStatus = "pending";
-      if (rawStatus === "successful" || rawStatus === "success" || rawStatus === "completed") {
+      
+      // Check for ALL possible success indicators
+      if (rawStatus === "successful" || rawStatus === "success" || rawStatus === "completed" || 
+          rawStatus === "sent" || rawStatus === "confirmed" || data.kind === "successful") {
         mappedStatus = "successful";
-      } else if (rawStatus === "failed" || rawStatus === "expired") {
+      } else if (rawStatus === "failed" || rawStatus === "expired" || rawStatus === "rejected") {
         mappedStatus = "failed";
+      } else if (rawStatus === "pending" || rawStatus === "initiated" || rawStatus === "processing") {
+        mappedStatus = "pending";
       }
+      
+      console.log(`[PAYPACK_STATUS] Txn ${transactionRef} - Mapped: ${rawStatus} → ${mappedStatus}`);
       
       return {
         status: mappedStatus,
         amount: data.amount,
-        kind: data.kind
+        kind: data.kind,
+        rawStatus: rawStatus,  // Include raw status for debugging
+        transactionData: data  // Include full data for inspection
       };
     } catch (error) {
       if (error.response?.status === 404) {
