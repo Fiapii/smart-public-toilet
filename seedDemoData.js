@@ -81,22 +81,20 @@ const seedDemoData = async () => {
       [owner1Id, 'Owner', cleaner1Id, 'Cleaner', 'Please clean the mall toilets today.']
     );
 
-    // 7. Create Test RFID Cards
+    // 7. Create Test RFID Cards (toilet_id = NULL means they work on ALL toilets)
     console.log('Seeding Test RFID Cards...');
-    const toilet1Id = toilet1Result.insertId;
-    const toilet2Id = toilet2Result.insertId;
 
     await db.query(
-      'INSERT INTO `rfid_cards` (uid, holder_name, balance, toilet_id, is_active) VALUES (?, ?, ?, ?, 1)',
-      ['29 67 1C 06', 'Test Card 1', 5000.00, toilet1Id]
+      'INSERT INTO `rfid_cards` (uid, holder_name, balance, toilet_id, is_active) VALUES (?, ?, ?, NULL, 1)',
+      ['29 67 1C 06', 'Test Card 1', 5000.00]
     );
     await db.query(
-      'INSERT INTO `rfid_cards` (uid, holder_name, balance, toilet_id, is_active) VALUES (?, ?, ?, ?, 1)',
-      ['AA BB CC DD', 'Test Card 2', 10000.00, toilet1Id]
+      'INSERT INTO `rfid_cards` (uid, holder_name, balance, toilet_id, is_active) VALUES (?, ?, ?, NULL, 1)',
+      ['AA BB CC DD', 'Test Card 2', 10000.00]
     );
     await db.query(
-      'INSERT INTO `rfid_cards` (uid, holder_name, balance, toilet_id, is_active) VALUES (?, ?, ?, ?, 1)',
-      ['11 22 33 44', 'Test Card 3', 2000.00, toilet2Id]
+      'INSERT INTO `rfid_cards` (uid, holder_name, balance, toilet_id, is_active) VALUES (?, ?, ?, NULL, 1)',
+      ['11 22 33 44', 'Test Card 3', 2000.00]
     );
 
     console.log('Demo data seeded successfully with separate tables!');

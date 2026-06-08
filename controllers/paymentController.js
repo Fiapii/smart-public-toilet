@@ -70,9 +70,23 @@ exports.createPayment = async (req, res) => {
         const mockTransactionId = 'MOCK_' + Date.now();
 
         await db.query(
-          'UPDATE `payments` SET transaction_id = ?, status = "Paid" WHERE id = ?',
+          'UPDATE `payments` SET transaction_id = ?, status = "completed", paid_at = NOW() WHERE id = ?',
           [mockTransactionId, paymentId]
         );
+
+        // Update toilet revenue
+        await db.query(
+          'UPDATE `toilets` SET revenue = revenue + ? WHERE id = ?',
+          [amount, toilet_id]
+        );
+
+        // Log payment event
+        try {
+          const details = `Mock payment confirmed: RWF ${amount} via phone ${phone_number}. Transaction: ${mockTransactionId}`;
+          await logAndBroadcast(toilet_id, 'payment', details);
+        } catch (logErr) {
+          console.error('[PAYMENT_LOG_ERROR]', logErr.message);
+        }
 
         return res.json({
           success: true,
@@ -135,7 +149,7 @@ exports.checkPaymentStatus = async (req, res) => {
       );
 
       await db.query(
-        'UPDATE `toilets` SET revenue = revenue + ? WHERE id = ?',
+        'UPDATE `toilets` SET revenue = revenue + ?, is_occupied = 1 WHERE id = ?',
         [payment.amount, payment.toilet_id]
       );
 
@@ -146,6 +160,8 @@ exports.checkPaymentStatus = async (req, res) => {
       } catch (logErr) {
         console.error('[PAYMENT_LOG_ERROR]', logErr.message);
       }
+
+      console.log(`[PAYMENT_SUCCESS] Toilet ${payment.toilet_id} marked as occupied for transaction ${transaction_id}`);
 
       return res.json({
         success: true,
@@ -187,8 +203,11 @@ exports.checkPaymentStatus = async (req, res) => {
       return res.json({
         success: true,
         status: 'successful',
+        command: 'OPEN_DOOR',
         message: 'Payment already confirmed. Door is opening...',
-        transaction_id: transaction_id
+        transaction_id: transaction_id,
+        amount: payment.amount,
+        toilet_id: payment.toilet_id
       });
     }
 
@@ -196,7 +215,8 @@ exports.checkPaymentStatus = async (req, res) => {
     res.json({
       success: true,
       status: 'pending',
-      message: 'Waiting for your confirmation on phone...'
+      message: 'Waiting for your confirmation on phone...',
+      transaction_id: transaction_id
     });
 
   } catch (error) {

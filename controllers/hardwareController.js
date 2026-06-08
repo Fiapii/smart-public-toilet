@@ -107,12 +107,12 @@ exports.rfidTap = async (req, res) => {
       [cleanUid, cleanUid.replace(/:/g, '')]
     );
 
-    // Auto‑register if card not found
+    // Auto‑register if card not found (with toilet_id = NULL so it works on ALL toilets)
     if (cards.length === 0) {
-      console.log(`[RFID] New card: ${cleanUid}, registering with 0 balance`);
+      console.log(`[RFID] New card: ${cleanUid}, registering as universal card (works on all toilets)`);
       await db.query(
-        'INSERT INTO rfid_cards (uid, holder_name, balance, toilet_id, is_active) VALUES (?, ?, ?, ?, 1)',
-        [cleanUid, 'New User', 0, toilet_id]
+        'INSERT INTO rfid_cards (uid, holder_name, balance, toilet_id, is_active) VALUES (?, ?, ?, NULL, 1)',
+        [cleanUid, 'New User', 0]
       );
       await logAndBroadcast(toilet_id, 'rfid_new_card', `New card registered: ${cleanUid}`);
       return res.json({
@@ -250,10 +250,10 @@ exports.checkPaymentTrigger = async (req, res) => {
       }
     }
 
-    // Now look for a completed, not yet consumed payment
+    // Now look for a completed or Paid, not yet consumed payment
     const [completed] = await db.query(
       `SELECT * FROM payments 
-       WHERE toilet_id = ? AND status = 'completed' AND (consumed IS NULL OR consumed = 0)
+       WHERE toilet_id = ? AND status IN ('completed', 'Paid') AND (consumed IS NULL OR consumed = 0)
        ORDER BY paid_at DESC LIMIT 1`,
       [toilet_id]
     );
@@ -264,7 +264,13 @@ exports.checkPaymentTrigger = async (req, res) => {
 
     const payment = completed[0];
     await db.query('UPDATE payments SET consumed = 1 WHERE id = ?', [payment.id]);
+    
+    // Mark toilet as occupied when door opens (if not already)
+    await db.query('UPDATE `toilets` SET is_occupied = 1 WHERE id = ?', [toilet_id]);
+    
     await logAndBroadcast(toilet_id, 'payment_trigger', `Payment ${payment.transaction_id} (${payment.amount} RWF) triggered door opening`);
+
+    console.log(`[DOOR_TRIGGER] Payment ${payment.transaction_id} (${payment.amount} RWF) for toilet ${toilet_id} - sending OPEN_DOOR command`);
 
     return res.json({
       command: 'OPEN_DOOR',

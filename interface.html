@@ -1004,6 +1004,7 @@
     let currentChatUserId = null;
     let currentChatUserRole = null;
     let chatInterval = null;
+    let dashboardRefreshInterval = null;
 
     // Track unread messages
     let unreadCounts = {};
@@ -1321,7 +1322,22 @@
       let titles = { dashboard: 'Dashboard', toilets: 'Toilet Management', revenue: 'Revenue & Finance', transactions: 'Transactions', cleaners: 'Cleaners', chat: 'Messages', complaints: 'Client Complaints', sensorComplaints: 'Sensor Alerts', reports: 'Reports', settings: 'Settings', cleanerDash: 'My Dashboard', cleanerToilets: 'My Toilets', superDash: 'System Overview', owners: 'Owner Management', systemReports: 'System Reports' };
       document.getElementById('pageTitle').textContent = titles[page] || page;
 
-      if (page === 'dashboard' && currentUser?.role === 'Owner') loadOwnerDashboard();
+      // Stop dashboard refresh interval for non-dashboard pages
+      if (page !== 'dashboard') {
+        if (dashboardRefreshInterval) {
+          clearInterval(dashboardRefreshInterval);
+          dashboardRefreshInterval = null;
+        }
+      }
+
+      if (page === 'dashboard' && currentUser?.role === 'Owner') {
+        loadOwnerDashboard();
+        // Start auto-refresh of dashboard every 10 seconds
+        if (dashboardRefreshInterval) clearInterval(dashboardRefreshInterval);
+        dashboardRefreshInterval = setInterval(() => {
+          if (currentPage === 'dashboard') loadOwnerDashboard();
+        }, 10000);
+      }
       else if (page === 'toilets' && currentUser?.role === 'Owner') loadOwnerToilets();
       else if (page === 'revenue' && currentUser?.role === 'Owner') loadOwnerRevenue();
       else if (page === 'transactions' && currentUser?.role === 'Owner') loadOwnerRevenue();
@@ -1800,6 +1816,13 @@
             prependEvent(ev, 'dashboardEventsFeed');
             prependEvent(ev, 'iotEventsList');
             updateDashboardRfidStats(ev);
+            
+            // Refresh dashboard stats when payment is confirmed
+            if (ev.event_type === 'payment' || ev.event_type === 'payment_trigger') {
+              console.log('[SSE] Payment event received, refreshing dashboard...');
+              setTimeout(() => loadOwnerDashboard(), 500);
+            }
+            
             // Notify badge if not on IoT page
             if (currentPage !== 'iotEvents') {
               iotEventCount++;

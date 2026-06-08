@@ -26,7 +26,12 @@ exports.listCards = async (req, res) => {
     }
 
     const [cards] = await db.query(query, params);
-    res.json(cards);
+    // Handle NULL toilet_id (universal cards) - show them with location 'Universal (All Toilets)'
+    const processedCards = cards.map(card => ({
+      ...card,
+      toilet_location: card.toilet_location || 'Universal (All Toilets)'
+    }));
+    res.json(processedCards);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
