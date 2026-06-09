@@ -8,7 +8,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;700&display=swap"
     rel="stylesheet">
   <style>
-    /* (your existing styles - unchanged) */
+    /* Your existing styles (unchanged) – keep them as they are */
     :root {
       --accent: #2b5ce6;
       --accent-dark: #1a3fa0;
@@ -253,7 +253,6 @@
     <div class="logo">PUBLIC TOILET</div>
     <div class="sub-title">Touchless Public Toilet System</div>
 
-    <!-- Status badge (click to refresh) -->
     <div id="statusBadge" class="status-badge status-free" onclick="checkToiletStatus(true)">
       <span id="statusIcon">🟢</span> <span id="statusText">Toilet Free</span>
       <span class="refresh-btn">⟳</span>
@@ -311,76 +310,20 @@
   </div>
 
   <script>
-    const API_BASE = '/api';
+    // ========== CONFIGURATION ==========
+    // Force the backend URL – change if your Render URL changes
+    const BACKEND_URL = 'https://public-toilets-by-fiacre-iit-engineer.onrender.com';
+    // Use the absolute backend URL if the page is not served from the same domain
+    const API_BASE = (window.location.origin === 'https://public-toilets-by-fiacre-iit-engineer.onrender.com' || window.location.origin === 'http://localhost:5000')
+      ? '/api'
+      : `${BACKEND_URL}/api`;
+
     let pollInterval = null;
     let targetToiletId = null;
     let isToiletOccupied = false;
+    const TARGET_TOILET_ID = 90001;   // Your toilet ID in the database
 
-    // ================================================
-    // CONFIGURATION: Set the exact toilet ID you want to monitor.
-    // If left as null, the first toilet from the list will be used.
-    // Change this to 90001 (or your actual toilet ID) to avoid mismatches.
-    // ================================================
-    const TARGET_TOILET_ID = 90001;   // <-- SET YOUR TOILET ID HERE (or null to auto-detect)
-
-    // Fetch toilet config and status
-    async function fetchConfig() {
-      try {
-        const res = await fetch(`${API_BASE}/public/toilets`);
-        if (!res.ok) throw new Error('HTTP ' + res.status);
-        const toilets = await res.json();
-        if (toilets && toilets.length > 0) {
-          let selectedToilet;
-          if (TARGET_TOILET_ID !== null) {
-            // Find toilet with specific ID
-            selectedToilet = toilets.find(t => t.id === TARGET_TOILET_ID);
-            if (!selectedToilet) {
-              console.warn(`Toilet with ID ${TARGET_TOILET_ID} not found, falling back to first toilet.`);
-              selectedToilet = toilets[0];
-            }
-          } else {
-            selectedToilet = toilets[0];
-          }
-          targetToiletId = selectedToilet.id;
-          isToiletOccupied = selectedToilet.is_occupied === 1;
-          console.log(`[STATUS] Toilet ${targetToiletId} occupied: ${isToiletOccupied}`);
-          updateUIForOccupancy();
-        } else {
-          console.warn('No toilets returned');
-        }
-      } catch (err) {
-        console.error('fetchConfig error:', err);
-      }
-    }
-
-    // Manual or automatic status check
-    async function checkToiletStatus(manual = false) {
-      try {
-        const res = await fetch(`${API_BASE}/public/toilets`);
-        if (!res.ok) throw new Error('HTTP ' + res.status);
-        const toilets = await res.json();
-        if (toilets && toilets.length > 0) {
-          let selectedToilet;
-          if (TARGET_TOILET_ID !== null) {
-            selectedToilet = toilets.find(t => t.id === TARGET_TOILET_ID);
-            if (!selectedToilet) selectedToilet = toilets[0];
-          } else {
-            selectedToilet = toilets[0];
-          }
-          const newOccupied = selectedToilet.is_occupied === 1;
-          if (newOccupied !== isToiletOccupied) {
-            console.log(`[STATUS] Changed: ${isToiletOccupied} -> ${newOccupied}`);
-            isToiletOccupied = newOccupied;
-            updateUIForOccupancy();
-          } else if (manual) {
-            updateUIForOccupancy();
-          }
-        }
-      } catch (err) {
-        console.error('checkToiletStatus error:', err);
-      }
-    }
-
+    // ========== UI Helpers ==========
     function updateUIForOccupancy() {
       const payButton = document.getElementById('payButton');
       const statusBadge = document.getElementById('statusBadge');
@@ -404,9 +347,57 @@
       }
     }
 
-    // Initial fetch and periodic polling (every 2 seconds)
-    fetchConfig();
-    setInterval(() => checkToiletStatus(false), 2000);
+    // ========== Fetch toilet status ==========
+    async function fetchConfig() {
+      try {
+        const res = await fetch(`${API_BASE}/public/toilets`);
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const toilets = await res.json();
+        if (toilets && toilets.length > 0) {
+          let selectedToilet = toilets.find(t => t.id === TARGET_TOILET_ID);
+          if (!selectedToilet) selectedToilet = toilets[0];
+          targetToiletId = selectedToilet.id;
+          isToiletOccupied = selectedToilet.is_occupied === 1;
+          console.log(`[STATUS] Toilet ${targetToiletId} occupied: ${isToiletOccupied}`);
+          updateUIForOccupancy();
+        } else {
+          console.warn('No toilets returned');
+        }
+      } catch (err) {
+        console.error('fetchConfig error:', err);
+      }
+    }
+
+    async function checkToiletStatus(manual = false) {
+      try {
+        const res = await fetch(`${API_BASE}/public/toilets`);
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const toilets = await res.json();
+        if (toilets && toilets.length > 0) {
+          let selectedToilet = toilets.find(t => t.id === TARGET_TOILET_ID);
+          if (!selectedToilet) selectedToilet = toilets[0];
+          const newOccupied = selectedToilet.is_occupied === 1;
+          if (newOccupied !== isToiletOccupied) {
+            console.log(`[STATUS] Changed: ${isToiletOccupied} -> ${newOccupied}`);
+            isToiletOccupied = newOccupied;
+            updateUIForOccupancy();
+          } else if (manual) {
+            updateUIForOccupancy();
+          }
+        }
+      } catch (err) {
+        console.error('checkToiletStatus error:', err);
+      }
+    }
+
+    // ========== Payment Flow ==========
+    function resetModal() {
+      document.getElementById('paymentInputs').style.display = 'block';
+      document.getElementById('payLoader').style.display = 'none';
+      document.getElementById('successIcon').style.display = 'none';
+      document.getElementById('statusMsg').innerHTML = '';
+      document.getElementById('mTitle').innerText = 'Enter Phone Number';
+    }
 
     function openPayModal() {
       if (isToiletOccupied) {
@@ -420,47 +411,6 @@
     function closeModal() {
       document.getElementById('payModal').classList.remove('active');
       if (pollInterval) clearInterval(pollInterval);
-    }
-
-    function openSuggestModal() {
-      document.getElementById('suggestModal').classList.add('active');
-      document.getElementById('suggestInputs').style.display = 'block';
-      document.getElementById('suggestSuccess').style.display = 'none';
-    }
-
-    function closeSuggestModal() {
-      document.getElementById('suggestModal').classList.remove('active');
-    }
-
-    async function submitSuggestion() {
-      if (!targetToiletId) await fetchConfig();
-      const text = document.getElementById('suggestionText').value.trim();
-      if (!text) return alert('Please enter your suggestion');
-      try {
-        const res = await fetch(`${API_BASE}/public/complaints`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ toilet_id: targetToiletId, description: text })
-        });
-        const data = await res.json();
-        if (data.success) {
-          document.getElementById('suggestInputs').style.display = 'none';
-          document.getElementById('suggestSuccess').style.display = 'block';
-          document.getElementById('suggestionText').value = '';
-        } else {
-          alert('Failed: ' + (data.error || 'Unknown error'));
-        }
-      } catch (err) {
-        alert('Error sending feedback');
-      }
-    }
-
-    function resetModal() {
-      document.getElementById('paymentInputs').style.display = 'block';
-      document.getElementById('payLoader').style.display = 'none';
-      document.getElementById('successIcon').style.display = 'none';
-      document.getElementById('statusMsg').innerHTML = '';
-      document.getElementById('mTitle').innerText = 'Enter Phone Number';
     }
 
     async function startPayment() {
@@ -553,7 +503,6 @@
       document.getElementById('successIcon').style.display = 'block';
       document.getElementById('mTitle').innerText = '🎉 Payment Confirmed!';
 
-      // Trigger door open via hardware endpoint
       let doorOpened = false;
       if (targetToiletId) {
         try {
@@ -568,7 +517,6 @@
         }
       }
 
-      // Animated countdown
       let countdown = 5;
       const render = (sec) => {
         const txnInfo = data.transaction_id
@@ -603,6 +551,42 @@
         }
       }, 1000);
     }
+
+    // ========== Suggestion ==========
+    function openSuggestModal() {
+      document.getElementById('suggestModal').classList.add('active');
+      document.getElementById('suggestInputs').style.display = 'block';
+      document.getElementById('suggestSuccess').style.display = 'none';
+    }
+    function closeSuggestModal() {
+      document.getElementById('suggestModal').classList.remove('active');
+    }
+    async function submitSuggestion() {
+      if (!targetToiletId) await fetchConfig();
+      const text = document.getElementById('suggestionText').value.trim();
+      if (!text) return alert('Please enter your suggestion');
+      try {
+        const res = await fetch(`${API_BASE}/public/complaints`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ toilet_id: targetToiletId, description: text })
+        });
+        const data = await res.json();
+        if (data.success) {
+          document.getElementById('suggestInputs').style.display = 'none';
+          document.getElementById('suggestSuccess').style.display = 'block';
+          document.getElementById('suggestionText').value = '';
+        } else {
+          alert('Failed: ' + (data.error || 'Unknown error'));
+        }
+      } catch (err) {
+        alert('Error sending feedback');
+      }
+    }
+
+    // ========== Initialization ==========
+    fetchConfig();
+    setInterval(() => checkToiletStatus(false), 2000);
   </script>
 </body>
 
