@@ -77,7 +77,7 @@ exports.sseStream = (req, res) => {
 };
 
 // ─────────────────────────────────────────────────────────────
-// RFID tap – main fix: robust UID matching + auto‑register
+// RFID tap – robust UID matching + auto‑register (universal card)
 // ─────────────────────────────────────────────────────────────
 exports.rfidTap = async (req, res) => {
   let { uid, toilet_id } = req.body;
@@ -85,9 +85,7 @@ exports.rfidTap = async (req, res) => {
     return res.status(400).json({ command: 'DENY', message: 'Missing uid or toilet_id' });
   }
 
-  // Normalize UID: uppercase, remove spaces, ensure colon separator
   let cleanUid = uid.trim().toUpperCase().replace(/\s/g, '');
-  // If no colons, insert them every 2 characters
   if (!cleanUid.includes(':')) {
     let parts = [];
     for (let i = 0; i < cleanUid.length; i += 2) {
@@ -99,7 +97,6 @@ exports.rfidTap = async (req, res) => {
   console.log(`[RFID_TAP] Incoming UID: ${uid} → normalized: ${cleanUid}, toilet: ${toilet_id}`);
 
   try {
-    // Look up card (match both with and without colons)
     let [cards] = await db.query(
       `SELECT * FROM rfid_cards 
        WHERE REPLACE(UPPER(uid), ' ', '') IN (?, REPLACE(?, ':', ''))
@@ -107,7 +104,6 @@ exports.rfidTap = async (req, res) => {
       [cleanUid, cleanUid.replace(/:/g, '')]
     );
 
-    // Auto‑register if card not found (with toilet_id = NULL so it works on ALL toilets)
     if (cards.length === 0) {
       console.log(`[RFID] New card: ${cleanUid}, registering as universal card (works on all toilets)`);
       await db.query(
@@ -134,11 +130,9 @@ exports.rfidTap = async (req, res) => {
       });
     }
 
-    // Deduct fare
     const newBalance = parseFloat(card.balance) - FARE;
     await db.query('UPDATE rfid_cards SET balance = ? WHERE id = ?', [newBalance, card.id]);
 
-    // Record payment
     const txnId = `RFID_${Date.now()}_${card.id}`;
     await db.query(
       `INSERT INTO payments (toilet_id, amount, phone_number, transaction_id, status, paid_at, consumed)
@@ -146,10 +140,8 @@ exports.rfidTap = async (req, res) => {
       [toilet_id, FARE, `RFID:${cleanUid}`, txnId]
     );
 
-    // Update toilet revenue
     await db.query('UPDATE toilets SET revenue = revenue + ? WHERE id = ?', [FARE, toilet_id]);
 
-    // Log events
     await logAndBroadcast(toilet_id, 'rfid_tap', `Card ${cleanUid} (${card.holder_name}) paid RWF ${FARE}. New balance: ${newBalance}`);
     await logAndBroadcast(toilet_id, 'payment', `RWF ${FARE} deducted via RFID ${cleanUid}. Transaction: ${txnId}`);
 
@@ -201,7 +193,7 @@ exports.getSensorEvents = async (req, res) => {
 };
 
 // ─────────────────────────────────────────────────────────────
-// Check for completed online payments (ESP32 polls)
+// Check for completed online payments (ESP32 polls) – FIXED
 // ─────────────────────────────────────────────────────────────
 exports.checkPaymentTrigger = async (req, res) => {
   const { toilet_id } = req.params;
@@ -210,13 +202,22 @@ exports.checkPaymentTrigger = async (req, res) => {
   }
 
   try {
-    // First, update any pending payments by checking PayPack
+    // 1. Delete stale pending payments older than 10 minutes (prevent re‑confirmation)
+    await db.query(
+      `DELETE FROM payments 
+       WHERE toilet_id = ? AND status = 'pending' 
+       AND created_at < NOW() - INTERVAL 10 MINUTE`,
+      [toilet_id]
+    );
+
+    // 2. Update any recent pending payments by checking PayPack
     const [pending] = await db.query(
       `SELECT * FROM payments 
        WHERE toilet_id = ? AND status = 'pending' AND transaction_id IS NOT NULL
        AND created_at >= NOW() - INTERVAL 10 MINUTE`,
       [toilet_id]
     );
+
     for (const payment of pending) {
       try {
         let newStatus = null;
@@ -239,8 +240,19 @@ exports.checkPaymentTrigger = async (req, res) => {
             [newStatus, payment.id]
           );
           if (success) {
+            // Immediately consume and open door (only if payment is recent)
+            await db.query('UPDATE payments SET consumed = 1 WHERE id = ?', [payment.id]);
             await db.query('UPDATE toilets SET revenue = revenue + ? WHERE id = ?', [payment.amount, payment.toilet_id]);
+            await db.query('UPDATE toilets SET is_occupied = 1 WHERE id = ?', [toilet_id]);
             await logAndBroadcast(payment.toilet_id, 'payment', `Online payment confirmed: RWF ${payment.amount} – ${payment.transaction_id}`);
+            await logAndBroadcast(payment.toilet_id, 'payment_trigger', `Payment ${payment.transaction_id} (${payment.amount} RWF) triggered door opening`);
+            console.log(`[DOOR_TRIGGER] Pending payment ${payment.transaction_id} confirmed – opening door`);
+            return res.json({
+              command: 'OPEN_DOOR',
+              message: `Payment accepted! RWF ${payment.amount} charged. Door opening...`,
+              transaction_id: payment.transaction_id,
+              amount: payment.amount
+            });
           } else {
             await logAndBroadcast(payment.toilet_id, 'payment_failed', `Online payment failed: ${payment.transaction_id}`);
           }
@@ -250,10 +262,12 @@ exports.checkPaymentTrigger = async (req, res) => {
       }
     }
 
-    // Now look for a completed or Paid, not yet consumed payment
+    // 3. Look for completed or Paid payments that are not yet consumed AND were created recently (last 5 minutes)
     const [completed] = await db.query(
       `SELECT * FROM payments 
-       WHERE toilet_id = ? AND status IN ('completed', 'Paid') AND (consumed IS NULL OR consumed = 0)
+       WHERE toilet_id = ? AND status IN ('completed', 'Paid') 
+       AND (consumed IS NULL OR consumed = 0)
+       AND paid_at >= NOW() - INTERVAL 5 MINUTE
        ORDER BY paid_at DESC LIMIT 1`,
       [toilet_id]
     );
@@ -264,13 +278,9 @@ exports.checkPaymentTrigger = async (req, res) => {
 
     const payment = completed[0];
     await db.query('UPDATE payments SET consumed = 1 WHERE id = ?', [payment.id]);
-    
-    // Mark toilet as occupied when door opens (if not already)
-    await db.query('UPDATE `toilets` SET is_occupied = 1 WHERE id = ?', [toilet_id]);
-    
+    await db.query('UPDATE toilets SET is_occupied = 1 WHERE id = ?', [toilet_id]);
     await logAndBroadcast(toilet_id, 'payment_trigger', `Payment ${payment.transaction_id} (${payment.amount} RWF) triggered door opening`);
-
-    console.log(`[DOOR_TRIGGER] Payment ${payment.transaction_id} (${payment.amount} RWF) for toilet ${toilet_id} - sending OPEN_DOOR command`);
+    console.log(`[DOOR_TRIGGER] Completed payment ${payment.transaction_id} – opening door`);
 
     return res.json({
       command: 'OPEN_DOOR',
@@ -293,36 +303,28 @@ exports.updateSensors = async (req, res) => {
     return res.status(400).json({ error: 'Missing parameters' });
   }
   try {
-    // 1. Update the toilet's soap and smell levels
     const [result] = await db.query(
       'UPDATE toilets SET soap_level = ?, smell_level = ? WHERE id = ?',
       [soap_level, smell_level, toilet_id]
     );
     if (result.affectedRows === 0) return res.status(404).json({ error: 'Toilet not found' });
 
-    // 2. Log the sensor update (for real-time dashboards)
     await logAndBroadcast(toilet_id, 'sensor_update', `soap=${soap_level}, smell=${smell_level}`);
 
-    // 3. If smell is "High", create a sensor complaint (unless one already open recently)
     if (smell_level === 'High') {
-      // Check for an unresolved sensor complaint for this toilet in the last 10 minutes
       const [existing] = await db.query(
         `SELECT id FROM complaints 
          WHERE toilet_id = ? AND type = 'Sensor' AND status = 'open' 
          AND created_at > NOW() - INTERVAL 10 MINUTE`,
         [toilet_id]
       );
-
       if (existing.length === 0) {
-        // Insert new complaint
         await db.query(
           `INSERT INTO complaints (toilet_id, description, type, status, created_at)
            VALUES (?, ?, 'Sensor', 'open', NOW())`,
           [toilet_id, 'Unpleasant smell detected. Please check ventilation or cleaning.']
         );
         console.log(`[ALERT] Sensor complaint created for toilet ${toilet_id} (bad smell)`);
-
-        // Optional: broadcast a real-time alert via SSE
         broadcastEvent(toilet_id, {
           event_type: 'alert',
           details: 'Bad smell detected',
