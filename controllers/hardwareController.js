@@ -134,11 +134,11 @@ exports.rfidTap = async (req, res) => {
     await db.query('UPDATE rfid_cards SET balance = ? WHERE id = ?', [newBalance, card.id]);
 
     const txnId = `RFID_${Date.now()}_${card.id}`;
-    await db.query(
-      `INSERT INTO payments (toilet_id, amount, phone_number, transaction_id, status, paid_at, consumed)
-       VALUES (?, ?, ?, ?, 'Paid', NOW(), 0)`,
-      [toilet_id, FARE, `RFID:${cleanUid}`, txnId]
-    );
+   await db.query(
+  `INSERT INTO payments (toilet_id, amount, phone_number, transaction_id, status, paid_at, consumed)
+   VALUES (?, ?, ?, ?, 'Paid', NOW(), 1)`,   // ← consumed = 1
+  [toilet_id, FARE, `RFID:${cleanUid}`, txnId]
+);
 
     await db.query('UPDATE toilets SET revenue = revenue + ? WHERE id = ?', [FARE, toilet_id]);
 
