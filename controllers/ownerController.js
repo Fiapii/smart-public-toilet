@@ -150,6 +150,9 @@ exports.getAdmins = async (req, res) => {
   }
 };
 
+// ─────────────────────────────────────────────────────────────
+// TRANSACTIONS (all payments for owner's toilets)
+// ─────────────────────────────────────────────────────────────
 exports.getTransactions = async (req, res) => {
   const ownerId = req.user.id;
   try {
@@ -182,7 +185,7 @@ exports.downloadTransactions = async (req, res) => {
     // Determine payment method based on transaction_id format
     const transactionsWithMethod = transactions.map(t => ({
       ...t,
-      payment_method: t.transaction_id.startsWith('MOCK_') ? 'QR Code' : 'USSD'
+      payment_method: t.transaction_id && t.transaction_id.startsWith('MOCK_') ? 'QR Code' : 'USSD'
     }));
 
     res.json({ transactions: transactionsWithMethod });
@@ -239,6 +242,9 @@ exports.updateCleaner = async (req, res) => {
   }
 };
 
+// ─────────────────────────────────────────────────────────────
+// REVENUE FILTERED (by period or custom dates)
+// ─────────────────────────────────────────────────────────────
 exports.getRevenueFiltered = async (req, res) => {
   const ownerId = req.user.id;
   const { period, from, to } = req.query;
@@ -246,7 +252,6 @@ exports.getRevenueFiltered = async (req, res) => {
   let startDate, endDate;
   const now = new Date();
 
-  // ─── Date range logic ───
   switch (period) {
     case 'today':
       startDate = new Date(now.setHours(0,0,0,0));

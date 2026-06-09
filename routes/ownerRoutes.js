@@ -68,5 +68,6 @@ router.post('/toilet', addToilet);
 router.post('/toilets', addToilet);
 router.get('/complaints', getComplaints);
 router.put('/complaints/:id/resolve', resolveComplaint);
-//nnrouter.get('/revenue/filtered', ownerController.getRevenueFiltered);
+const ownerController = require('../controllers/ownerController');
+router.get('/revenue/filtered', ownerController.getRevenueFiltered);
 module.exports = router;
