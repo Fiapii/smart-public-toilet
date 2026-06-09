@@ -77,7 +77,7 @@ exports.sseStream = (req, res) => {
 };
 
 // ─────────────────────────────────────────────────────────────
-// RFID tap – robust UID matching + auto‑register (universal card)
+// RFID tap – robust UID matching + auto‑register (assign to toilet)
 // ─────────────────────────────────────────────────────────────
 exports.rfidTap = async (req, res) => {
   let { uid, toilet_id } = req.body;
@@ -105,10 +105,11 @@ exports.rfidTap = async (req, res) => {
     );
 
     if (cards.length === 0) {
-      console.log(`[RFID] New card: ${cleanUid}, registering as universal card (works on all toilets)`);
+      console.log(`[RFID] New card: ${cleanUid}, registering for toilet ${toilet_id}`);
+      // ✅ FIXED: assign card to the toilet where it was tapped
       await db.query(
-        'INSERT INTO rfid_cards (uid, holder_name, balance, toilet_id, is_active) VALUES (?, ?, ?, NULL, 1)',
-        [cleanUid, 'New User', 0]
+        'INSERT INTO rfid_cards (uid, holder_name, balance, toilet_id, is_active) VALUES (?, ?, ?, ?, 1)',
+        [cleanUid, 'New User', 0, toilet_id]
       );
       await logAndBroadcast(toilet_id, 'rfid_new_card', `New card registered: ${cleanUid}`);
       return res.json({
