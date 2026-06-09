@@ -134,11 +134,12 @@ exports.rfidTap = async (req, res) => {
     await db.query('UPDATE rfid_cards SET balance = ? WHERE id = ?', [newBalance, card.id]);
 
     const txnId = `RFID_${Date.now()}_${card.id}`;
-   await db.query(
-  `INSERT INTO payments (toilet_id, amount, phone_number, transaction_id, status, paid_at, consumed)
-   VALUES (?, ?, ?, ?, 'Paid', NOW(), 1)`,   // ← consumed = 1
-  [toilet_id, FARE, `RFID:${cleanUid}`, txnId]
-);
+    // RFID payments are consumed immediately (consumed = 1)
+    await db.query(
+      `INSERT INTO payments (toilet_id, amount, phone_number, transaction_id, status, paid_at, consumed)
+       VALUES (?, ?, ?, ?, 'Paid', NOW(), 1)`,
+      [toilet_id, FARE, `RFID:${cleanUid}`, txnId]
+    );
 
     await db.query('UPDATE toilets SET revenue = revenue + ? WHERE id = ?', [FARE, toilet_id]);
 
@@ -193,7 +194,7 @@ exports.getSensorEvents = async (req, res) => {
 };
 
 // ─────────────────────────────────────────────────────────────
-// Check for completed online payments (ESP32 polls) – FIXED
+// Check for completed online payments (ESP32 polls)
 // ─────────────────────────────────────────────────────────────
 exports.checkPaymentTrigger = async (req, res) => {
   const { toilet_id } = req.params;
@@ -202,7 +203,7 @@ exports.checkPaymentTrigger = async (req, res) => {
   }
 
   try {
-    // 1. Delete stale pending payments older than 10 minutes (prevent re‑confirmation)
+    // 1. Delete stale pending payments older than 10 minutes
     await db.query(
       `DELETE FROM payments 
        WHERE toilet_id = ? AND status = 'pending' 
@@ -240,7 +241,7 @@ exports.checkPaymentTrigger = async (req, res) => {
             [newStatus, payment.id]
           );
           if (success) {
-            // Immediately consume and open door (only if payment is recent)
+            // Immediately consume and open door
             await db.query('UPDATE payments SET consumed = 1 WHERE id = ?', [payment.id]);
             await db.query('UPDATE toilets SET revenue = revenue + ? WHERE id = ?', [payment.amount, payment.toilet_id]);
             await db.query('UPDATE toilets SET is_occupied = 1 WHERE id = ?', [toilet_id]);
@@ -262,12 +263,13 @@ exports.checkPaymentTrigger = async (req, res) => {
       }
     }
 
-    // 3. Look for completed or Paid payments that are not yet consumed AND were created recently (last 5 minutes)
+    // 3. Look for completed or Paid payments that are either:
+    //    - not consumed (consumed = 0) OR
+    //    - paid within the last 30 seconds (to catch cases where ESP32 missed the first poll)
     const [completed] = await db.query(
       `SELECT * FROM payments 
        WHERE toilet_id = ? AND status IN ('completed', 'Paid') 
-       AND (consumed IS NULL OR consumed = 0)
-       AND paid_at >= NOW() - INTERVAL 5 MINUTE
+       AND (consumed = 0 OR paid_at >= NOW() - INTERVAL 30 SECOND)
        ORDER BY paid_at DESC LIMIT 1`,
       [toilet_id]
     );
@@ -277,17 +279,22 @@ exports.checkPaymentTrigger = async (req, res) => {
     }
 
     const payment = completed[0];
-    await db.query('UPDATE payments SET consumed = 1 WHERE id = ?', [payment.id]);
-    await db.query('UPDATE toilets SET is_occupied = 1 WHERE id = ?', [toilet_id]);
-    await logAndBroadcast(toilet_id, 'payment_trigger', `Payment ${payment.transaction_id} (${payment.amount} RWF) triggered door opening`);
-    console.log(`[DOOR_TRIGGER] Completed payment ${payment.transaction_id} – opening door`);
-
-    return res.json({
-      command: 'OPEN_DOOR',
-      message: `Payment accepted! RWF ${payment.amount} charged. Door opening...`,
-      transaction_id: payment.transaction_id,
-      amount: payment.amount
-    });
+    // If it was already consumed but very recent, we open the door anyway (and mark consumed again)
+    if (payment.consumed === 0 || payment.paid_at >= new Date(Date.now() - 30 * 1000)) {
+      await db.query('UPDATE payments SET consumed = 1 WHERE id = ?', [payment.id]);
+      await db.query('UPDATE toilets SET is_occupied = 1 WHERE id = ?', [toilet_id]);
+      await logAndBroadcast(toilet_id, 'payment_trigger', `Payment ${payment.transaction_id} (${payment.amount} RWF) triggered door opening`);
+      console.log(`[DOOR_TRIGGER] Completed payment ${payment.transaction_id} – opening door`);
+      return res.json({
+        command: 'OPEN_DOOR',
+        message: `Payment accepted! RWF ${payment.amount} charged. Door opening...`,
+        transaction_id: payment.transaction_id,
+        amount: payment.amount
+      });
+    } else {
+      // Should not happen, but fallback
+      return res.json({ command: 'DENY', message: 'Payment already used' });
+    }
   } catch (error) {
     console.error('[PAYMENT_CHECK] Error:', error);
     return res.status(500).json({ command: 'DENY', message: 'Server error' });
