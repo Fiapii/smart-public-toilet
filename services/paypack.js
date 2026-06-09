@@ -13,18 +13,14 @@ class PaypackService {
     if (this.accessToken && this.tokenExpiryTime && Date.now() + 120000 < this.tokenExpiryTime) {
       return this.accessToken;
     }
-
     const webhookMode = process.env.NODE_ENV === "production" ? "production" : "development";
-
     try {
       const response = await axios.post(
         `${this.baseUrl}/auth/agents/authorize`,
         { client_id: this.clientId, client_secret: this.clientSecret },
         { headers: { "Content-Type": "application/json", "X-Webhook-Mode": webhookMode } }
       );
-
       if (!response.data?.access) throw new Error("Failed to obtain access token from PayPack");
-
       this.accessToken = response.data.access;
       const expiresIn = (response.data.expires_in || 45 * 60) * 1000;
       this.tokenExpiryTime = Date.now() + expiresIn - 60000;
@@ -49,7 +45,6 @@ class PaypackService {
       },
       data
     };
-
     try {
       const response = await axios(config);
       return response.data;
@@ -87,33 +82,32 @@ class PaypackService {
         "get",
         `${this.baseUrl}/transactions/find/${transactionRef}`
       );
-      if (!data) return { status: "pending", eventKind: null };
-      
-      // Log raw response for debugging
-      console.log(`[PAYPACK_DEBUG] Txn ${transactionRef} - Raw response:`, JSON.stringify(data));
-      
-      // Normalise status (case‑insensitive, map variations)
+      // If the transaction does not exist, PayPack returns 404 -> caught in catch, returns pending.
+      if (!data) return { status: "pending" };
+
+      // Determine status: if explicit status field exists, use it; else treat as successful if we have a ref and amount.
       let rawStatus = (data.status || "").toString().toLowerCase().trim();
       let mappedStatus = "pending";
-      
-      // Check for ALL possible success indicators
-      if (rawStatus === "successful" || rawStatus === "success" || rawStatus === "completed" || 
-          rawStatus === "sent" || rawStatus === "confirmed" || data.kind === "successful") {
+
+      // If there is no explicit status but we have a valid transaction object, assume it's successful.
+      if (!rawStatus && data.ref && data.amount) {
+        mappedStatus = "successful";
+      } else if (rawStatus === "successful" || rawStatus === "success" || rawStatus === "completed") {
         mappedStatus = "successful";
       } else if (rawStatus === "failed" || rawStatus === "expired" || rawStatus === "rejected") {
         mappedStatus = "failed";
       } else if (rawStatus === "pending" || rawStatus === "initiated" || rawStatus === "processing") {
         mappedStatus = "pending";
       }
-      
-      console.log(`[PAYPACK_STATUS] Txn ${transactionRef} - Mapped: ${rawStatus} → ${mappedStatus}`);
-      
+
+      console.log(`[PAYPACK_STATUS] Txn ${transactionRef} – Mapped: ${rawStatus || "(no status)"} → ${mappedStatus}`);
+
       return {
         status: mappedStatus,
         amount: data.amount,
         kind: data.kind,
-        rawStatus: rawStatus,  // Include raw status for debugging
-        transactionData: data  // Include full data for inspection
+        rawStatus: rawStatus,
+        transactionData: data
       };
     } catch (error) {
       if (error.response?.status === 404) {
