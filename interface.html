@@ -973,7 +973,7 @@ async function subscribeToPush() {
     const permission = await Notification.requestPermission();
     if (permission !== 'granted') return;
     // IMPORTANT: Replace with your actual VAPID_PUBLIC_KEY (from Render environment)
-    const vapidPublicKey = 'YOUR_VAPID_PUBLIC_KEY_HERE';
+    const vapidPublicKey = 'BBgot4glrLvKPmLBd9h15cgRUCpYqyTxPkqVHrxTJUOOBXCeY8Vl5x0DoXx-RP55jD2Yxjw-dFRDUA-ypzrqHLk';
     const subscription = await registration.pushManager.subscribe({
       userVisibleOnly: true,
       applicationServerKey: urlBase64ToUint8Array(vapidPublicKey)
@@ -1174,9 +1174,15 @@ async function subscribeToPush() {
     }
 
     function initApp() {
-      if (currentUser.role === 'Cleaner') {
-  subscribeToPush();
-}
+      if (!currentUser) return;
+  document.getElementById('loginScreen').classList.remove('active');
+  document.getElementById('appScreen').classList.add('active');
+  // ... (the rest of your existing initApp code)
+
+  // At the end of initApp, after everything else is set up:
+  if (currentUser.role === 'Cleaner') {
+    subscribeToPush();
+  }
       if (!currentUser) return;
       document.getElementById('loginScreen').classList.remove('active');
       document.getElementById('appScreen').classList.add('active');
