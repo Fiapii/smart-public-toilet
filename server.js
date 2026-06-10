@@ -52,7 +52,7 @@ const swaggerOptions = {
 const swaggerDocs = swaggerJsDoc(swaggerOptions);
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocs));
 
-// Static files (HTML, CSS, JS)
+// Static files (HTML, CSS, JS, sw.js)
 app.use(express.static(__dirname));
 
 // API Routes
@@ -69,11 +69,6 @@ app.use('/api/rfid', rfidRoutes);
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', message: 'Smart Public Toilet API is running' });
-});
-
-// Catch-all for frontend routes (must be AFTER API routes)
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'index.html'));
 });
 
 // Error handling middleware
