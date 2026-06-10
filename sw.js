@@ -4,7 +4,7 @@ self.addEventListener('push', function(event) {
     self.registration.showNotification(data.title, {
       body: data.body,
       icon: '/icon.png',
-      vibrate: [200, 100, 200],
+      vibrate: [500, 300, 400],
       requireInteraction: true
     })
   );
