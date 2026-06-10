@@ -64,10 +64,17 @@ class PaypackService {
 
   async initiateCashin(phoneNumber, amount) {
     try {
+      // IMPORTANT: Explicitly request STK Push (automatic popup) by setting kind and channel.
+      const payload = {
+        amount: amount,
+        number: phoneNumber,
+        kind: "CASHIN",
+        channel: "STK_PUSH"    // <-- Forces the on‑screen popup instead of USSD code
+      };
       const data = await this._requestWithRetry(
         "post",
         `${this.baseUrl}/transactions/cashin`,
-        { amount, number: phoneNumber }
+        payload
       );
       return data;
     } catch (error) {
@@ -82,14 +89,11 @@ class PaypackService {
         "get",
         `${this.baseUrl}/transactions/find/${transactionRef}`
       );
-      // If the transaction does not exist, PayPack returns 404 -> caught in catch, returns pending.
       if (!data) return { status: "pending" };
 
-      // Determine status: if explicit status field exists, use it; else treat as successful if we have a ref and amount.
       let rawStatus = (data.status || "").toString().toLowerCase().trim();
       let mappedStatus = "pending";
 
-      // If there is no explicit status but we have a valid transaction object, assume it's successful.
       if (!rawStatus && data.ref && data.amount) {
         mappedStatus = "successful";
       } else if (rawStatus === "successful" || rawStatus === "success" || rawStatus === "completed") {
