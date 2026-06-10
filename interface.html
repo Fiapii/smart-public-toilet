@@ -313,6 +313,21 @@
             </div>
           </div>
         </div>
+        <!-- Recent Transactions strip on dashboard -->
+        <div class="card" style="margin-top:20px;border-left:3px solid #f59e0b;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+            <div class="card-title" style="margin:0;">💰 Recent Transactions</div>
+            <button class="btn-sm" onclick="showPage('transactions', null)">View All →</button>
+          </div>
+          <div id="dashboardRecentTxns" style="overflow-x:auto;">
+            <table>
+              <thead><tr><th>Txn ID</th><th>Time</th><th>Toilet</th><th>Phone</th><th>Amount</th><th>Status</th></tr></thead>
+              <tbody id="dashboardRecentTxnBody">
+                <tr><td colspan="6" style="text-align:center;padding:16px;color:var(--ink3);">Loading...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
 
       <!-- IOT LIVE EVENTS PAGE -->
@@ -438,9 +453,47 @@
 
       <!-- TRANSACTIONS PAGE -->
       <div class="page" id="page-transactions">
+        <div class="grid-3" style="margin-bottom:20px;">
+          <div class="stat-card">
+            <div class="stat-label">Total Revenue</div>
+            <div><span class="rev-currency">RWF</span><span class="rev-big" id="txnTotalRev">—</span></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Successful Payments</div>
+            <div><span class="rev-big" id="txnPaidCount">—</span></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Failed / Pending</div>
+            <div><span class="rev-big" id="txnFailCount">—</span></div>
+          </div>
+        </div>
         <div class="card">
-          <div class="card-title">All Transactions</div>
-          <div id="allTransactionsList"></div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+            <div class="card-title" style="margin:0;">💳 All Transactions</div>
+            <div style="display:flex;gap:10px;align-items:center;">
+              <span id="txnLiveDot" style="width:10px;height:10px;border-radius:50%;background:#10b981;display:inline-block;animation:pulse 1.4s infinite;"></span>
+              <span style="font-size:12px;color:var(--ink3);">LIVE</span>
+              <button class="btn-sm" onclick="loadAllTransactions()">↻ Refresh</button>
+              <button class="btn-add" onclick="generateReport('revenue')">📥 CSV</button>
+            </div>
+          </div>
+          <div id="allTransactionsList">
+            <table>
+              <thead>
+                <tr>
+                  <th>Txn ID</th>
+                  <th>Date / Time</th>
+                  <th>Toilet</th>
+                  <th>Phone / Method</th>
+                  <th>Amount</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="allTxnTableBody">
+                <tr><td colspan="6" style="text-align:center;padding:32px;">Loading transactions...</td></tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
 
@@ -1027,7 +1080,7 @@
           msg = 'Cannot connect to server. Ensure backend is running at ' + (API_BASE.startsWith('http') ? API_BASE : window.location.origin + API_BASE);
         }
         showToast(msg, false);
-        if (error.message.includes('expired') || error.message.includes('token')) doLogout();
+        if (error.response && error.response.status === 401) doLogout();
         throw error;
       }
     }
@@ -1340,7 +1393,7 @@
       }
       else if (page === 'toilets' && currentUser?.role === 'Owner') loadOwnerToilets();
       else if (page === 'revenue' && currentUser?.role === 'Owner') loadOwnerRevenue();
-      else if (page === 'transactions' && currentUser?.role === 'Owner') loadOwnerRevenue();
+      else if (page === 'transactions' && currentUser?.role === 'Owner') loadAllTransactions();
       else if (page === 'cleaners' && currentUser?.role === 'Owner') loadOwnerCleaners();
       else if (page === 'complaints' && currentUser?.role === 'Owner') loadComplaints();
       else if (page === 'chat') { loadChatContacts(); }
@@ -1465,6 +1518,9 @@
         if (data.totalRevenue > 0) {
           document.getElementById('revenueChart').innerHTML = `<div class="bar-wrap"><div class="bar bar-qr" style="height:140px"></div><div class="bar-label">Real Money</div></div>`;
         }
+
+        // Load recent transactions on dashboard
+        loadAllTransactions();
       } catch (err) { }
     }
 
@@ -1484,18 +1540,67 @@
         document.getElementById('revTotalMonth').textContent = total.toLocaleString();
         document.getElementById('revPaidCount').textContent = successfulTxns.length;
         document.getElementById('revFailedCount').textContent = failedTxns.length;
-        document.getElementById('transactionsTableBody').innerHTML = transactions.length ? transactions.map(t => {
-          let badgeColor = (t.status === 'completed' || t.status === 'Paid') ? 'badge-green' : (t.status === 'pending' ? 'badge-yellow' : 'badge-red');
-          return `<tr>
-            <td>#${t.transaction_id || t.id}</td>
-            <td>${new Date(t.created_at).toLocaleString()}</td>
-            <td>${t.location}</td>
-            <td>${t.phone_number}</td>
-            <td>${t.amount} RWF</td>
-            <td><span class="badge ${badgeColor}">${t.status}</span></td>
-          </td>`;
-        }).join('') : '<tr><td colspan="6">No transactions found<\/td></td>';
       } catch (err) { }
+    }
+
+    let txnRefreshInterval = null;
+
+    async function loadAllTransactions() {
+      try {
+        const transactions = await apiRequest('/owner/transactions');
+        const successful = transactions.filter(t => t.status === 'completed' || t.status === 'Paid');
+        const failed = transactions.filter(t => t.status !== 'completed' && t.status !== 'Paid');
+        const total = successful.reduce((s, t) => s + parseFloat(t.amount), 0);
+
+        const totalEl = document.getElementById('txnTotalRev');
+        const paidEl = document.getElementById('txnPaidCount');
+        const failEl = document.getElementById('txnFailCount');
+        if (totalEl) totalEl.textContent = total.toLocaleString();
+        if (paidEl) paidEl.textContent = successful.length;
+        if (failEl) failEl.textContent = failed.length;
+
+        const renderRow = (t) => {
+          const badgeColor = (t.status === 'completed' || t.status === 'Paid') ? 'badge-green' : (t.status === 'pending' ? 'badge-yellow' : 'badge-red');
+          const method = t.phone_number && t.phone_number.startsWith('RFID:') ? '💳 RFID' : '📱 MoMo';
+          return `<tr>
+            <td style="font-size:11px;font-family:monospace;">#${(t.transaction_id || t.id + '').substring(0, 18)}...</td>
+            <td>${new Date(t.created_at).toLocaleString()}</td>
+            <td>${t.location || '—'}</td>
+            <td>${method} ${t.phone_number && !t.phone_number.startsWith('RFID:') ? t.phone_number : ''}</td>
+            <td><strong>${parseFloat(t.amount).toLocaleString()} RWF</strong></td>
+            <td><span class="badge ${badgeColor}">${t.status}</span></td>
+          </tr>`;
+        };
+
+        const bodyEl = document.getElementById('allTxnTableBody');
+        if (bodyEl) {
+          bodyEl.innerHTML = transactions.length
+            ? transactions.map(renderRow).join('')
+            : '<tr><td colspan="6" style="text-align:center;padding:32px;">No transactions found</td></tr>';
+        }
+
+        // Also update dashboard recent transactions strip (last 5)
+        const dashBody = document.getElementById('dashboardRecentTxnBody');
+        if (dashBody) {
+          const recent = transactions.slice(0, 5);
+          dashBody.innerHTML = recent.length
+            ? recent.map(t => {
+                const badgeColor = (t.status === 'completed' || t.status === 'Paid') ? 'badge-green' : (t.status === 'pending' ? 'badge-yellow' : 'badge-red');
+                const method = t.phone_number && t.phone_number.startsWith('RFID:') ? '💳 RFID' : '📱 MoMo';
+                return `<tr>
+                  <td style="font-size:11px;font-family:monospace;">#${(t.transaction_id || t.id + '').substring(0, 14)}…</td>
+                  <td>${new Date(t.created_at).toLocaleTimeString()}</td>
+                  <td>${t.location || '—'}</td>
+                  <td>${method}</td>
+                  <td>${parseFloat(t.amount).toLocaleString()} RWF</td>
+                  <td><span class="badge ${badgeColor}">${t.status}</span></td>
+                </tr>`;
+              }).join('')
+            : '<tr><td colspan="6" style="text-align:center;padding:12px;color:var(--ink3);">No transactions yet</td></tr>';
+        }
+      } catch (err) {
+        console.error('loadAllTransactions error:', err);
+      }
     }
 
     async function loadOwnerCleaners() {
