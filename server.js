@@ -5,7 +5,10 @@ const cors = require('cors');
 const swaggerUi = require('swagger-ui-express');
 const swaggerJsDoc = require('swagger-jsdoc');
 
-// Route imports (ONLY ONCE)
+// Push notification service
+const { setupPush } = require('./services/pushService');
+
+// Route imports
 const authRoutes = require('./routes/authRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const ownerRoutes = require('./routes/ownerRoutes');
@@ -18,12 +21,15 @@ const rfidRoutes = require('./routes/rfidRoutes');
 
 const app = express();
 
+// Initialize web push (VAPID)
+setupPush();
+
 // Middleware
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Swagger
+// Swagger configuration
 const swaggerOptions = {
   swaggerDefinition: {
     openapi: '3.0.0',

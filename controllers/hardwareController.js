@@ -1,5 +1,6 @@
 const db = require('../config/db');
 const paypack = require('../services/paypack');
+const { sendPushToCleaner } = require('../services/pushService');
 
 // ─────────────────────────────────────────────────────────────
 // SSE client registry and broadcast helpers
@@ -106,7 +107,6 @@ exports.rfidTap = async (req, res) => {
 
     if (cards.length === 0) {
       console.log(`[RFID] New card: ${cleanUid}, registering for toilet ${toilet_id}`);
-      // ✅ FIXED: assign card to the toilet where it was tapped
       await db.query(
         'INSERT INTO rfid_cards (uid, holder_name, balance, toilet_id, is_active) VALUES (?, ?, ?, ?, 1)',
         [cleanUid, 'New User', 0, toilet_id]
@@ -338,6 +338,19 @@ exports.updateSensors = async (req, res) => {
           details: 'Bad smell detected',
           level: 'High'
         });
+
+        // NEW: Send push notification to the cleaner assigned to this toilet
+        const [toiletInfo] = await db.query('SELECT cleaner_id FROM toilets WHERE id = ?', [toilet_id]);
+        if (toiletInfo.length && toiletInfo[0].cleaner_id) {
+          await sendPushToCleaner(
+            toiletInfo[0].cleaner_id,
+            '🚨 Bad Smell Alert',
+            `Toilet #${toilet_id} has high odour. Please check ventilation or cleaning.`
+          );
+          console.log(`[PUSH] Bad smell notification sent to cleaner ${toiletInfo[0].cleaner_id}`);
+        } else {
+          console.log(`[PUSH] No cleaner assigned to toilet ${toilet_id}, skipping push`);
+        }
       } else {
         console.log(`[ALERT] Smell still High, but complaint already open (toilet ${toilet_id})`);
       }
