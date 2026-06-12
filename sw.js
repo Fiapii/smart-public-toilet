@@ -1,8 +1,19 @@
 self.addEventListener('push', function(event) {
-  const data = event.data.json();
+  let title = 'Notification';
+  let body = '';
+
+  try {
+    const data = event.data.json();
+    title = data.title || 'Notification';
+    body = data.body || '';
+  } catch (e) {
+    // Not JSON – treat the raw text as the notification body
+    body = event.data.text();
+  }
+
   event.waitUntil(
-    self.registration.showNotification(data.title, {
-      body: data.body,
+    self.registration.showNotification(title, {
+      body: body,
       icon: '/icon.png',
       vibrate: [500, 300, 400],
       requireInteraction: true

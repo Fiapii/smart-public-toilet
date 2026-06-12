@@ -478,7 +478,7 @@
             </div>
           </div>
           <div id="allTransactionsList">
-            <table>
+            <tr>
               <thead>
                 <tr>
                   <th>Txn ID</th>
@@ -737,7 +737,7 @@
             <div class="card-title">Owner Revenue Overview</div><button class="btn-sm"
               onclick="openModal('broadcastModal')">📢 Broadcast Message</button>
           </div>
-          </table>
+          <table>
             <thead>
               <tr>
                 <th>Owner</th>
@@ -972,7 +972,6 @@ async function subscribeToPush() {
     const registration = await navigator.serviceWorker.register('/sw.js');
     const permission = await Notification.requestPermission();
     if (permission !== 'granted') return;
-    // IMPORTANT: Replace with your actual VAPID_PUBLIC_KEY (from Render environment)
     const vapidPublicKey = 'BBgot4glrLvKPmLBd9h15cgRUCpYqyTxPkqVHrxTJUOOBXCeY8Vl5x0DoXx-RP55jD2Yxjw-dFRDUA-ypzrqHLk';
     const subscription = await registration.pushManager.subscribe({
       userVisibleOnly: true,
@@ -987,17 +986,9 @@ async function subscribeToPush() {
     console.error('Push subscription error:', err);
   }
 }
-    // ==================== YOUR ORIGINAL JAVASCRIPT (unchanged) ====================
-    // (the entire script as you had it – all functions, variables, event listeners, etc.)
-    // To avoid making this file impossibly long, I am including the full original script.
-    // In practice, you already have it. Here I will simply reference that it is present.
-    // Please ensure that when you copy this file, you also copy your existing script content here.
-    // For the sake of completeness, I will assume the existing script is exactly as you provided in your last message.
-    // Therefore I will not duplicate it – but in the final file you must include it.
 
-    // ==================== NEW FUNCTIONS FOR REVENUE FILTERS ====================
-    // Add these at the end of your script
-
+    // ==================== ORIGINAL JAVASCRIPT (with corrected initApp) ====================
+    
     async function loadOwnerRevenueFiltered() {
       const period = document.getElementById('ownerRevenuePeriod').value;
       let url = '/api/owner/revenue/filtered?period=' + period;
@@ -1016,11 +1007,11 @@ async function subscribeToPush() {
         if (data.data && data.data.length) {
           let html = '';
           for (const row of data.data) {
-            html += `<tr><td colspan="2">${row.date}</td><td>All Toilets</td><td>-</td><td>${parseFloat(row.total).toLocaleString()} RWF</td><td>Completed</td></tr>`;
+            html += `<tr><td colspan="2">${row.date}<td>All Toilets<td>-<td>${parseFloat(row.total).toLocaleString()} RWF<td>Completed</tr>`;
           }
           document.getElementById('transactionsTableBody').innerHTML = html;
         } else {
-          document.getElementById('transactionsTableBody').innerHTML = '<tr><td colspan="6">No transactions for this period</td></tr>';
+          document.getElementById('transactionsTableBody').innerHTML = '<tr><td colspan="6">No transactions for this period</tr>';
         }
       } catch (err) {
         console.error('Failed to load filtered revenue', err);
@@ -1050,7 +1041,6 @@ async function subscribeToPush() {
       try {
         const data = await apiRequest(url);
         document.getElementById('adminFilteredTotal').innerText = data.total.toLocaleString();
-        // Optionally update a table under system reports – add a div if needed
       } catch (err) {
         console.error('Failed to load admin filtered revenue', err);
         showToast('Error loading system revenue data', false);
@@ -1064,7 +1054,6 @@ async function subscribeToPush() {
       if (period !== 'custom') loadAdminRevenueFiltered();
     }
 
-    // Override showPage to auto-load filtered data when revenue page is opened
     const originalShowPage = window.showPage;
     window.showPage = function(page, btn, extra) {
       originalShowPage(page, btn, extra);
@@ -1076,7 +1065,6 @@ async function subscribeToPush() {
       }
     };
     
-    // ==================== REAL DATABASE INTEGRATION ====================
     const API_BASE = '/api';
     let currentUser = null;
     try {
@@ -1090,17 +1078,13 @@ async function subscribeToPush() {
     let currentChatUserRole = null;
     let chatInterval = null;
     let dashboardRefreshInterval = null;
-
-    // Track unread messages
     let unreadCounts = {};
 
-    // API Helper
     async function apiRequest(endpoint, options = {}) {
       const headers = {
         'Content-Type': 'application/json',
         ...(authToken && { 'Authorization': `Bearer ${authToken}` })
       };
-
       try {
         const response = await fetch(`${API_BASE}${endpoint}`, { ...options, headers });
         const data = await response.json();
@@ -1129,19 +1113,15 @@ async function subscribeToPush() {
       selectedRole = role;
       document.querySelectorAll('.role-tab').forEach(t => t.classList.remove('active'));
       btn.classList.add('active');
-      
       const roleName = role === 'superadmin' ? 'Admin' : role === 'owner' ? 'Owner' : 'Cleaner';
-      
       try {
         const response = await fetch(`${API_BASE}/auth/emails/${roleName}`);
         const emails = await response.json();
         const datalist = document.getElementById('emailList');
         datalist.innerHTML = emails.map(u => `<option value="${u.email}">${u.name}</option>`).join('');
-        
-        // Auto-select first if available
         if (emails.length > 0) {
           document.getElementById('loginUser').value = emails[0].email;
-          document.getElementById('loginPass').value = 'password123'; // Demo default
+          document.getElementById('loginPass').value = 'password123';
         }
       } catch (err) {
         console.error('Failed to load role emails', err);
@@ -1154,18 +1134,15 @@ async function subscribeToPush() {
       let email = document.getElementById('loginUser').value;
       let password = document.getElementById('loginPass').value;
       let role = selectedRole === 'superadmin' ? 'Admin' : selectedRole === 'owner' ? 'Owner' : 'Cleaner';
-
       try {
         const data = await apiRequest('/auth/login', {
           method: 'POST',
           body: JSON.stringify({ email, password, role })
         });
-
         authToken = data.token;
         currentUser = data;
         localStorage.setItem('token', authToken);
         localStorage.setItem('user', JSON.stringify(currentUser));
-
         initApp();
         showToast(`Welcome back, ${currentUser.name}!`, true);
       } catch (err) {
@@ -1173,21 +1150,16 @@ async function subscribeToPush() {
       }
     }
 
+    // ✅ CORRECTED initApp
     function initApp() {
       if (!currentUser) return;
-  document.getElementById('loginScreen').classList.remove('active');
-  document.getElementById('appScreen').classList.add('active');
-  // ... (the rest of your existing initApp code)
 
-  // At the end of initApp, after everything else is set up:
-  if (currentUser.role === 'Cleaner') {
-    subscribeToPush();
-  }
-      if (!currentUser) return;
       document.getElementById('loginScreen').classList.remove('active');
       document.getElementById('appScreen').classList.add('active');
+
       document.getElementById('sidebarUser').textContent = currentUser.name;
       document.getElementById('sidebarRole').textContent = currentUser.role + ' Portal';
+
       let initials = currentUser.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
       document.getElementById('userAvatar').textContent = initials;
 
@@ -1200,6 +1172,11 @@ async function subscribeToPush() {
       else showPage('superDash');
 
       startChatPolling();
+
+      // Subscribe to push notifications for cleaner
+      if (currentUser.role === 'Cleaner') {
+        subscribeToPush();
+      }
     }
 
     function startChatPolling() {
@@ -1221,9 +1198,6 @@ async function subscribeToPush() {
         const badge = document.getElementById('notifBadge');
         const count = document.getElementById('notifCount');
         const sidebarCompBadge = document.getElementById('compBadge');
-        const sidebarChatBadge = document.getElementById('chatBadge');
-
-        // Update top bell
         if (data.total > 0) {
           if (badge) badge.style.display = 'block';
           if (count) { count.style.display = 'block'; count.textContent = data.total; }
@@ -1231,8 +1205,6 @@ async function subscribeToPush() {
           if (badge) badge.style.display = 'none';
           if (count) count.style.display = 'none';
         }
-
-        // Update sidebar complaints badge
         if (sidebarCompBadge) {
           if (data.unreadComplaints > 0) {
             sidebarCompBadge.style.display = 'inline-block';
@@ -1241,7 +1213,6 @@ async function subscribeToPush() {
             sidebarCompBadge.style.display = 'none';
           }
         }
-
         unreadCounts = data;
       } catch (err) { }
     }
@@ -1265,14 +1236,12 @@ async function subscribeToPush() {
           const admins = await apiRequest('/owner/admins');
           contacts = [...cleaners.map(c => ({ ...c, role: 'Cleaner' })), ...admins.map(a => ({ ...a, role: 'Admin' }))];
         } else if (currentUser.role === 'Cleaner') {
-          // Cleaners talk to their owner
           const owners = await apiRequest('/cleaner/owners');
           contacts = owners.map(o => ({ ...o, role: 'Owner' }));
         } else if (currentUser.role === 'Admin') {
           contacts = await apiRequest('/admin/owners');
           contacts = contacts.map(o => ({ ...o, role: 'Owner' }));
         }
-
         let container = document.getElementById('chatContactsList');
         if (!container) return;
         if (contacts.length === 0) container.innerHTML = '<p style="padding:10px;">No contacts available</p>';
@@ -1310,7 +1279,6 @@ async function subscribeToPush() {
             const isMe = m.sender_id === currentUser.id && m.sender_role === currentUser.role;
             const diffMin = (new Date() - new Date(m.timestamp)) / (1000 * 60);
             const canEdit = isMe && diffMin <= 5;
-            
             return `
               <div class="chat-bubble ${isMe ? 'bubble-out' : 'bubble-in'}">
                 ${m.is_edited ? '<small style="opacity:0.6;display:block;font-size:9px;">(edited)</small>' : ''}
@@ -1341,10 +1309,7 @@ async function subscribeToPush() {
       const message = document.getElementById('chatInput').value;
       if (!message) return;
       try {
-        await apiRequest(`/chats/edit/${editingMessageId}`, {
-          method: 'PUT',
-          body: JSON.stringify({ message })
-        });
+        await apiRequest(`/chats/edit/${editingMessageId}`, { method: 'PUT', body: JSON.stringify({ message }) });
         cancelEdit();
         refreshChatHistory(false);
       } catch (err) { }
@@ -1392,12 +1357,12 @@ async function subscribeToPush() {
     function showForgot() { document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); document.getElementById('forgotScreen').classList.add('active'); }
     function showLogin() { document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); document.getElementById('loginScreen').classList.add('active'); }
     function showRegister() { document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); document.getElementById('registerScreen').classList.add('active'); }
+
     function doReset() {
       const email = document.getElementById('resetEmail').value;
       const secret = document.getElementById('resetSecret').value;
       const pass = document.getElementById('resetNewPass').value;
       if (!email || !secret || !pass) return showToast('All fields required');
-
       apiRequest('/auth/reset-password', {
         method: 'POST',
         body: JSON.stringify({ email, secret_word: secret, newPassword: pass })
@@ -1415,22 +1380,16 @@ async function subscribeToPush() {
       if (btn) { document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active')); btn.classList.add('active'); }
       let titles = { dashboard: 'Dashboard', toilets: 'Toilet Management', revenue: 'Revenue & Finance', transactions: 'Transactions', cleaners: 'Cleaners', chat: 'Messages', complaints: 'Client Complaints', sensorComplaints: 'Sensor Alerts', reports: 'Reports', settings: 'Settings', cleanerDash: 'My Dashboard', cleanerToilets: 'My Toilets', superDash: 'System Overview', owners: 'Owner Management', systemReports: 'System Reports' };
       document.getElementById('pageTitle').textContent = titles[page] || page;
-
-      // Stop dashboard refresh interval for non-dashboard pages
       if (page !== 'dashboard') {
         if (dashboardRefreshInterval) {
           clearInterval(dashboardRefreshInterval);
           dashboardRefreshInterval = null;
         }
       }
-
       if (page === 'dashboard' && currentUser?.role === 'Owner') {
         loadOwnerDashboard();
-        // Start auto-refresh of dashboard every 10 seconds
         if (dashboardRefreshInterval) clearInterval(dashboardRefreshInterval);
-        dashboardRefreshInterval = setInterval(() => {
-          if (currentPage === 'dashboard') loadOwnerDashboard();
-        }, 10000);
+        dashboardRefreshInterval = setInterval(() => { if (currentPage === 'dashboard') loadOwnerDashboard(); }, 10000);
       }
       else if (page === 'toilets' && currentUser?.role === 'Owner') loadOwnerToilets();
       else if (page === 'revenue' && currentUser?.role === 'Owner') loadOwnerRevenue();
@@ -1442,31 +1401,22 @@ async function subscribeToPush() {
       else if (page === 'cleanerDash' && currentUser?.role === 'Cleaner') loadCleanerDashboard();
       else if (page === 'superDash' && currentUser?.role === 'Admin') loadSuperAdminDashboard();
       else if (page === 'owners' && currentUser?.role === 'Admin') loadAdminOwners();
-      
       if (page === 'complaints') loadComplaints();
       if (page === 'sensorComplaints') loadSensorComplaints();
-      if (page === 'reports') loadOwnerDashboard(); // Mock
+      if (page === 'reports') loadOwnerDashboard();
       if (page === 'systemReports') loadSuperAdminDashboard();
-
-      // Close sidebar on mobile
-      if (window.innerWidth <= 768) {
-        document.querySelector('.sidebar').classList.remove('mobile-active');
-      }
+      if (window.innerWidth <= 768) { document.querySelector('.sidebar').classList.remove('mobile-active'); }
     }
 
-    function toggleSidebar() {
-      document.querySelector('.sidebar').classList.toggle('mobile-active');
-    }
+    function toggleSidebar() { document.querySelector('.sidebar').classList.toggle('mobile-active'); }
 
     async function loadSensorComplaints() {
       try {
         const endpoint = currentUser.role === 'Owner' ? '/owner/complaints' : '/cleaner/complaints';
         const allComplaints = await apiRequest(endpoint);
         const complaints = allComplaints.filter(c => c.type === 'Sensor');
-        
         document.getElementById('openSensorCount').textContent = complaints.filter(c => c.status === 'open').length;
         document.getElementById('resolvedSensorCount').textContent = complaints.filter(c => c.status === 'resolved').length;
-        
         document.getElementById('sensorComplaintsList').innerHTML = complaints.length ? complaints.map(c => `
           <div class="complaint-item">
             <div class="complaint-icon" style="color:var(--yellow);">${c.status === 'open' ? '📡' : '✅'}</div>
@@ -1494,52 +1444,32 @@ async function subscribeToPush() {
       const name = document.getElementById('settingsName').value;
       const email = document.getElementById('settingsEmail').value;
       const currentPassword = document.getElementById('settingsProfilePass').value;
-
       if (!currentPassword) return showToast('Please enter your password to confirm changes', false);
-
       try {
         const secret_word = document.getElementById('settingsSecret').value;
-        await apiRequest('/auth/profile', {
-          method: 'PUT',
-          body: JSON.stringify({ name, email, secret_word, currentPassword })
-        });
-
+        await apiRequest('/auth/profile', { method: 'PUT', body: JSON.stringify({ name, email, secret_word, currentPassword }) });
         currentUser.name = name;
         currentUser.email = email;
         localStorage.setItem('user', JSON.stringify(currentUser));
         document.getElementById('settingsProfilePass').value = '';
-
         document.getElementById('sidebarUser').textContent = name;
         showToast('Profile updated successfully', true);
-      } catch (err) {
-        console.error('Profile update failed', err);
-      }
+      } catch (err) { console.error('Profile update failed', err); }
     }
 
     async function updatePassword() {
       const currentPassword = document.getElementById('settingsOldPass').value;
       const newPassword = document.getElementById('settingsNewPass').value;
       const confirm = document.getElementById('settingsConfirmPass').value;
-
       if (!currentPassword || !newPassword) return showToast('Please fill all password fields', false);
-      if (newPassword !== confirm) {
-        return showToast('New passwords do not match', false);
-      }
-
+      if (newPassword !== confirm) return showToast('New passwords do not match', false);
       try {
-        await apiRequest('/auth/update-password', {
-          method: 'PUT',
-          body: JSON.stringify({ currentPassword, newPassword })
-        });
-
+        await apiRequest('/auth/update-password', { method: 'PUT', body: JSON.stringify({ currentPassword, newPassword }) });
         document.getElementById('settingsOldPass').value = '';
         document.getElementById('settingsNewPass').value = '';
         document.getElementById('settingsConfirmPass').value = '';
-
         showToast('Password updated successfully', true);
-      } catch (err) {
-        console.error('Password update failed', err);
-      }
+      } catch (err) { console.error('Password update failed', err); }
     }
 
     async function loadOwnerDashboard() {
@@ -1548,19 +1478,12 @@ async function subscribeToPush() {
         document.getElementById('ownerTotalRev').textContent = data.totalRevenue.toLocaleString() + ' RWF';
         document.getElementById('ownerTotalToilets').textContent = data.toiletCount;
         document.getElementById('ownerTotalCleaners').textContent = data.cleanerCount;
-        // Complaints and mini grid
         const complaints = await apiRequest('/owner/complaints');
         document.getElementById('ownerTotalComplaints').textContent = complaints.filter(c => c.status === 'open').length;
         renderToiletsGrid('mainToiletGrid', data.toilets);
         renderMiniToilets(data.toilets);
         updateBroadcastBanner();
-
-        // Revenue chart logic (simplified)
-        if (data.totalRevenue > 0) {
-          document.getElementById('revenueChart').innerHTML = `<div class="bar-wrap"><div class="bar bar-qr" style="height:140px"></div><div class="bar-label">Real Money</div></div>`;
-        }
-
-        // Load recent transactions on dashboard
+        if (data.totalRevenue > 0) { document.getElementById('revenueChart').innerHTML = `<div class="bar-wrap"><div class="bar bar-qr" style="height:140px"></div><div class="bar-label">Real Money</div></div>`; }
         loadAllTransactions();
       } catch (err) { }
     }
@@ -1585,63 +1508,35 @@ async function subscribeToPush() {
     }
 
     let txnRefreshInterval = null;
-
     async function loadAllTransactions() {
       try {
         const transactions = await apiRequest('/owner/transactions');
         const successful = transactions.filter(t => t.status === 'completed' || t.status === 'Paid');
         const failed = transactions.filter(t => t.status !== 'completed' && t.status !== 'Paid');
         const total = successful.reduce((s, t) => s + parseFloat(t.amount), 0);
-
         const totalEl = document.getElementById('txnTotalRev');
         const paidEl = document.getElementById('txnPaidCount');
         const failEl = document.getElementById('txnFailCount');
         if (totalEl) totalEl.textContent = total.toLocaleString();
         if (paidEl) paidEl.textContent = successful.length;
         if (failEl) failEl.textContent = failed.length;
-
         const renderRow = (t) => {
           const badgeColor = (t.status === 'completed' || t.status === 'Paid') ? 'badge-green' : (t.status === 'pending' ? 'badge-yellow' : 'badge-red');
           const method = t.phone_number && t.phone_number.startsWith('RFID:') ? '💳 RFID' : '📱 MoMo';
-          return `<tr>
-            <td style="font-size:11px;font-family:monospace;">#${(t.transaction_id || t.id + '').substring(0, 18)}...</td>
-            <td>${new Date(t.created_at).toLocaleString()}</td>
-            <td>${t.location || '—'}</td>
-            <td>${method} ${t.phone_number && !t.phone_number.startsWith('RFID:') ? t.phone_number : ''}</td>
-            <td><strong>${parseFloat(t.amount).toLocaleString()} RWF</strong></td>
-            <td><span class="badge ${badgeColor}">${t.status}</span></td>
-          </tr>`;
+          return `<tr><td style="font-size:11px;font-family:monospace;">#${(t.transaction_id || t.id + '').substring(0, 18)}...<td>${new Date(t.created_at).toLocaleString()}<td>${t.location || '—'}<td>${method} ${t.phone_number && !t.phone_number.startsWith('RFID:') ? t.phone_number : ''}<td><strong>${parseFloat(t.amount).toLocaleString()} RWF</strong><td><span class="badge ${badgeColor}">${t.status}</span></tr>`;
         };
-
         const bodyEl = document.getElementById('allTxnTableBody');
-        if (bodyEl) {
-          bodyEl.innerHTML = transactions.length
-            ? transactions.map(renderRow).join('')
-            : '<tr><td colspan="6" style="text-align:center;padding:32px;">No transactions found</td></tr>';
-        }
-
-        // Also update dashboard recent transactions strip (last 5)
+        if (bodyEl) bodyEl.innerHTML = transactions.length ? transactions.map(renderRow).join('') : '<tr><td colspan="6">No transactions found</tr>';
         const dashBody = document.getElementById('dashboardRecentTxnBody');
         if (dashBody) {
           const recent = transactions.slice(0, 5);
-          dashBody.innerHTML = recent.length
-            ? recent.map(t => {
-                const badgeColor = (t.status === 'completed' || t.status === 'Paid') ? 'badge-green' : (t.status === 'pending' ? 'badge-yellow' : 'badge-red');
-                const method = t.phone_number && t.phone_number.startsWith('RFID:') ? '💳 RFID' : '📱 MoMo';
-                return `<tr>
-                  <td style="font-size:11px;font-family:monospace;">#${(t.transaction_id || t.id + '').substring(0, 14)}…</td>
-                  <td>${new Date(t.created_at).toLocaleTimeString()}</td>
-                  <td>${t.location || '—'}</td>
-                  <td>${method}</td>
-                  <td>${parseFloat(t.amount).toLocaleString()} RWF</td>
-                  <td><span class="badge ${badgeColor}">${t.status}</span></td>
-                </tr>`;
-              }).join('')
-            : '<tr><td colspan="6" style="text-align:center;padding:12px;color:var(--ink3);">No transactions yet</td></tr>';
+          dashBody.innerHTML = recent.length ? recent.map(t => {
+            const badgeColor = (t.status === 'completed' || t.status === 'Paid') ? 'badge-green' : (t.status === 'pending' ? 'badge-yellow' : 'badge-red');
+            const method = t.phone_number && t.phone_number.startsWith('RFID:') ? '💳 RFID' : '📱 MoMo';
+            return `<tr><td style="font-size:11px;">#${(t.transaction_id || t.id + '').substring(0, 14)}…<td>${new Date(t.created_at).toLocaleTimeString()}<td>${t.location || '—'}<td>${method}<td>${parseFloat(t.amount).toLocaleString()} RWF<td><span class="badge ${badgeColor}">${t.status}</span></tr>`;
+          }).join('') : '<tr><td colspan="6">No transactions yet</tr>';
         }
-      } catch (err) {
-        console.error('loadAllTransactions error:', err);
-      }
+      } catch (err) { console.error('loadAllTransactions error:', err); }
     }
 
     async function loadOwnerCleaners() {
@@ -1656,7 +1551,6 @@ async function subscribeToPush() {
         const endpoint = currentUser.role === 'Owner' ? '/owner/complaints' : '/cleaner/complaints';
         const allComplaints = await apiRequest(endpoint);
         const complaints = allComplaints.filter(c => c.type === 'User');
-        
         document.getElementById('openComplaintsCount').textContent = complaints.filter(c => c.status === 'open').length;
         document.getElementById('resolvedComplaintsCount').textContent = complaints.filter(c => c.status === 'resolved').length;
         document.getElementById('complaintsList').innerHTML = complaints.length ? complaints.map(c => `
@@ -1693,16 +1587,14 @@ async function subscribeToPush() {
         document.getElementById('cleanerAlertCount').textContent = alerts.filter(t => t.soap_level === 'Low' || t.smell_level === 'High').length;
         renderToiletsGrid('cleanerToiletGrid', alerts);
         renderToiletsGrid('cleanerToiletGrid2', alerts);
-
         const complaints = await apiRequest('/cleaner/complaints');
         const open = complaints.filter(c => c.status === 'open');
         document.getElementById('cleanerOpenComplaints').textContent = open.length;
-        document.getElementById('cleanerMiniComplaints').innerHTML = complaints.length ? complaints.slice(0, 5).map(c => `<div style="padding:10px;border-bottom:1px solid var(--border);font-size:13px;"><div style="display:flex;justify-content:space-between;"><strong>${c.location}</strong><span class="badge ${c.status === 'open' ? 'badge-red' : 'badge-green'}">${c.status}</span></div><div>${c.description}</div></div>`).join('') : '<p style="padding:10px;">No complaints</p>';
+        document.getElementById('cleanerMiniComplaints').innerHTML = complaints.length ? complaints.slice(0, 5).map(c => `<div style="padding:10px;border-bottom:1px solid var(--border);font-size:13px;"><div><strong>${c.location}</strong> <span class="badge ${c.status === 'open' ? 'badge-red' : 'badge-green'}">${c.status}</span></div><div>${c.description}</div></div>`).join('') : '<p>No complaints</p>';
         updateBroadcastBanner();
       } catch (err) { }
     }
 
-    // MODIFIED: Super admin dashboard now includes adminInterest
     async function loadSuperAdminDashboard() {
       try {
         const data = await apiRequest('/admin/dashboard');
@@ -1710,22 +1602,9 @@ async function subscribeToPush() {
         document.getElementById('superTotalToilets').textContent = data.totalToilets;
         document.getElementById('superTotalRev').textContent = (data.totalRevenue || 0).toLocaleString() + ' RWF';
         document.getElementById('superAdminInterest').textContent = (data.adminInterest || 0).toLocaleString() + ' RWF';
-
         const ownersTableBody = document.getElementById('ownersTableBody');
-        if (ownersTableBody) {
-          ownersTableBody.innerHTML = data.owners.map(o => `
-            <tr>
-              <td>${o.name}</td>
-              <td>${o.totalToilets}</td>
-              <td>${(o.ownerRevenue || 0).toLocaleString()} RWF</td>
-              <td>${o.cleanerCount}</td>
-              <td><button class="btn-sm btn-danger" onclick="deleteOwner(${o.id})">Delete</button></td>
-            </tr>
-          `).join('');
-        }
-      } catch (err) {
-        console.error('Failed to load super admin dashboard', err);
-      }
+        if (ownersTableBody) ownersTableBody.innerHTML = data.owners.map(o => `<tr><td>${o.name}<td>${o.totalToilets}<td>${(o.ownerRevenue || 0).toLocaleString()} RWF<td>${o.cleanerCount}<td><button class="btn-sm btn-danger" onclick="deleteOwner(${o.id})">Delete</button></tr>`).join('');
+      } catch (err) { console.error('Failed to load super admin dashboard', err); }
     }
 
     async function loadAdminOwners() {
@@ -1760,10 +1639,7 @@ async function subscribeToPush() {
       if (!name || !email || !pass) return showToast('Fill all fields');
       const secret = document.getElementById('cleanerSecret').value;
       try {
-        await apiRequest('/owner/cleaners', {
-          method: 'POST',
-          body: JSON.stringify({ name, email, password: pass, secret_word: secret })
-        });
+        await apiRequest('/owner/cleaners', { method: 'POST', body: JSON.stringify({ name, email, password: pass, secret_word: secret }) });
         closeModal('addCleanerModal');
         loadOwnerCleaners();
         showToast('Cleaner added', true);
@@ -1774,10 +1650,7 @@ async function subscribeToPush() {
       let loc = document.getElementById('toiletLoc').value;
       if (!loc) return;
       try {
-        await apiRequest('/owner/toilet', {
-          method: 'POST',
-          body: JSON.stringify({ location: loc })
-        });
+        await apiRequest('/owner/toilet', { method: 'POST', body: JSON.stringify({ location: loc }) });
         closeModal('addToiletModal');
         loadOwnerToilets();
         showToast('Toilet added', true);
@@ -1791,10 +1664,7 @@ async function subscribeToPush() {
       if (!name || !email || !pass) return showToast('Fill all fields');
       const secret = document.getElementById('ownerSecret').value;
       try {
-        await apiRequest('/admin/owners', {
-          method: 'POST',
-          body: JSON.stringify({ name, email, password: pass, secret_word: secret })
-        });
+        await apiRequest('/admin/owners', { method: 'POST', body: JSON.stringify({ name, email, password: pass, secret_word: secret }) });
         closeModal('addOwnerModal');
         loadSuperAdminDashboard(); loadAdminOwners();
         showToast('Owner created', true);
@@ -1806,10 +1676,7 @@ async function subscribeToPush() {
       if (!msg) return;
       try {
         const role = currentUser.role === 'Admin' ? 'admin' : 'owner';
-        await apiRequest(`/${role}/broadcast`, {
-          method: 'POST',
-          body: JSON.stringify({ message: msg })
-        });
+        await apiRequest(`/${role}/broadcast`, { method: 'POST', body: JSON.stringify({ message: msg }) });
         showToast('Broadcast sent successfully', true);
         if (document.getElementById('broadcastMessage')) document.getElementById('broadcastMessage').value = '';
         if (document.getElementById('broadcastQuickMsg')) document.getElementById('broadcastQuickMsg').value = '';
@@ -1826,10 +1693,8 @@ async function subscribeToPush() {
           const latest = broadcasts[0];
           const bannerId = currentUser.role === 'Cleaner' ? 'cleanerBroadcastBanner' : 'broadcastBanner';
           const textId = currentUser.role === 'Cleaner' ? 'cleanerBroadcastText' : 'broadcastMessageText';
-          
           const banner = document.getElementById(bannerId);
           const text = document.getElementById(textId);
-          
           if (banner && text) {
             text.textContent = latest.message;
             const strong = banner.querySelector('strong');
@@ -1855,75 +1720,49 @@ async function subscribeToPush() {
 
     function openModal(id) { document.getElementById(id).classList.add('active'); }
     function closeModal(id) { document.getElementById(id).classList.remove('active'); }
-
     window.onclick = function (e) { if (e.target.classList.contains('modal-overlay')) e.target.classList.remove('active'); }
 
-    // Init
     try {
-      if (authToken && currentUser) {
-        initApp();
-      } else {
-        // Load initial emails for default role
-        setRole('superadmin', document.querySelector('.role-tab'));
-      }
-    } catch (err) {
-      console.error('Init error', err);
-      localStorage.clear();
-    }
+      if (authToken && currentUser) { initApp(); }
+      else { setRole('superadmin', document.querySelector('.role-tab')); }
+    } catch (err) { console.error('Init error', err); localStorage.clear(); }
 
-    // ================================================================
-    // IoT LIVE EVENTS & RFID CARD MANAGEMENT
-    // ================================================================
-
-    let sseConnection = null;      // EventSource for SSE stream
-    let iotEventCount = 0;         // badge counter
-    const IOT_TOILET_ID = 'all';   // subscribe to all toilets
-
-    // ── Event type styling helpers ───────────────────────────────────
+    let sseConnection = null;
+    let iotEventCount = 0;
+    const IOT_TOILET_ID = 'all';
     const EVENT_META = {
-      door_open:    { icon: '🚪', label: 'Door Opened',    color: '#3b82f6' },
-      door_close:   { icon: '🚪', label: 'Door Closed',    color: '#6366f1' },
-      lid_open:     { icon: '🚽', label: 'Lid Opened',     color: '#f59e0b' },
-      lid_close:    { icon: '🚽', label: 'Lid Closed',     color: '#78716c' },
-      flush:        { icon: '💧', label: 'Flush',          color: '#06b6d4' },
-      rfid_tap:     { icon: '💳', label: 'RFID Payment',   color: '#10b981' },
-      rfid_denied:  { icon: '❌', label: 'Card Denied',    color: '#ef4444' },
-      payment:      { icon: '💰', label: 'Payment',        color: '#10b981' },
+      door_open: { icon: '🚪', label: 'Door Opened', color: '#3b82f6' },
+      door_close: { icon: '🚪', label: 'Door Closed', color: '#6366f1' },
+      lid_open: { icon: '🚽', label: 'Lid Opened', color: '#f59e0b' },
+      lid_close: { icon: '🚽', label: 'Lid Closed', color: '#78716c' },
+      flush: { icon: '💧', label: 'Flush', color: '#06b6d4' },
+      rfid_tap: { icon: '💳', label: 'RFID Payment', color: '#10b981' },
+      rfid_denied: { icon: '❌', label: 'Card Denied', color: '#ef4444' },
+      payment: { icon: '💰', label: 'Payment', color: '#10b981' },
       payment_failed: { icon: '❌', label: 'Payment Failed', color: '#ef4444' },
       payment_trigger: { icon: '🔑', label: 'Door Triggered', color: '#3b82f6' },
-      sensor_update:{ icon: '📡', label: 'Sensor Update',  color: '#8b5cf6' },
-      connected:    { icon: '🟢', label: 'Stream Connected', color: '#10b981' },
+      sensor_update: { icon: '📡', label: 'Sensor Update', color: '#8b5cf6' },
+      connected: { icon: '🟢', label: 'Stream Connected', color: '#10b981' },
     };
 
     function buildEventRow(ev) {
       const m = EVENT_META[ev.event_type] || { icon: '⚡', label: ev.event_type, color: '#94a3b8' };
       const t = ev.created_at ? new Date(ev.created_at).toLocaleTimeString() : new Date().toLocaleTimeString();
       const toiletBadge = ev.toilet_id ? `<span style="font-size:10px;background:var(--bg2);border-radius:4px;padding:1px 6px;margin-left:6px;">Toilet #${ev.toilet_id}</span>` : '';
-      return `
-        <div style="display:flex;align-items:flex-start;gap:10px;padding:8px 12px;border-radius:10px;background:var(--bg2);border-left:3px solid ${m.color};animation:fadeIn .3s ease;">
-          <span style="font-size:18px;line-height:1;">${m.icon}</span>
-          <div style="flex:1;min-width:0;">
-            <div style="font-weight:600;font-size:13px;color:${m.color};">${m.label}${toiletBadge}</div>
-            <div style="font-size:12px;color:var(--ink3);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${ev.details || ''}</div>
-          </div>
-          <span style="font-size:11px;color:var(--ink3);white-space:nowrap;">${t}</span>
-        </div>`;
+      return `<div style="display:flex;align-items:flex-start;gap:10px;padding:8px 12px;border-radius:10px;background:var(--bg2);border-left:3px solid ${m.color};animation:fadeIn .3s ease;"><span style="font-size:18px;">${m.icon}</span><div style="flex:1;"><div style="font-weight:600;font-size:13px;color:${m.color};">${m.label}${toiletBadge}</div><div style="font-size:12px;color:var(--ink3);">${ev.details || ''}</div></div><span style="font-size:11px;color:var(--ink3);">${t}</span></div>`;
     }
 
     function prependEvent(ev, feedId) {
       const feed = document.getElementById(feedId);
       if (!feed) return;
-      // Remove placeholder
       const placeholder = feed.querySelector('[data-placeholder]');
       if (placeholder) placeholder.remove();
       const row = document.createElement('div');
       row.innerHTML = buildEventRow(ev);
       feed.insertBefore(row.firstElementChild, feed.firstChild);
-      // Keep max 100 items
       while (feed.children.length > 100) feed.removeChild(feed.lastChild);
     }
 
-    // ── Update dashboard RFID stats on payment event ─────────────────
     function updateDashboardRfidStats(ev) {
       if (ev.event_type === 'rfid_tap' || ev.event_type === 'payment') {
         const el = document.getElementById('rfidLastTap');
@@ -1933,22 +1772,11 @@ async function subscribeToPush() {
           if (elp) { const m = ev.details && ev.details.match(/RWF (\d+)/); elp.textContent = m ? 'RWF ' + m[1] : 'RWF 100'; }
         }
       }
-      // Update IoT page counters
-      if (ev.event_type === 'door_open' || ev.event_type === 'door_close') {
-        const el = document.getElementById('iotDoorCount');
-        if (el) el.textContent = parseInt(el.textContent || 0) + 1;
-      }
-      if (ev.event_type === 'rfid_tap') {
-        const el = document.getElementById('iotRfidCount');
-        if (el) el.textContent = parseInt(el.textContent || 0) + 1;
-      }
-      if (ev.event_type === 'flush') {
-        const el = document.getElementById('iotFlushCount');
-        if (el) el.textContent = parseInt(el.textContent || 0) + 1;
-      }
+      if (ev.event_type === 'door_open' || ev.event_type === 'door_close') { const el = document.getElementById('iotDoorCount'); if (el) el.textContent = parseInt(el.textContent || 0) + 1; }
+      if (ev.event_type === 'rfid_tap') { const el = document.getElementById('iotRfidCount'); if (el) el.textContent = parseInt(el.textContent || 0) + 1; }
+      if (ev.event_type === 'flush') { const el = document.getElementById('iotFlushCount'); if (el) el.textContent = parseInt(el.textContent || 0) + 1; }
     }
 
-    // ── Start SSE stream ─────────────────────────────────────────────
     function startSseStream() {
       if (sseConnection) { sseConnection.close(); sseConnection = null; }
       const url = `${API_BASE}/hardware/events/stream/${IOT_TOILET_ID}`;
@@ -1958,49 +1786,39 @@ async function subscribeToPush() {
           try {
             const ev = JSON.parse(e.data);
             if (ev.event_type === 'connected') return;
-            // Push to both feeds
             prependEvent(ev, 'dashboardEventsFeed');
             prependEvent(ev, 'iotEventsList');
             updateDashboardRfidStats(ev);
-            
-            // Refresh dashboard stats when payment is confirmed
             if (ev.event_type === 'payment' || ev.event_type === 'payment_trigger') {
               console.log('[SSE] Payment event received, refreshing dashboard...');
               setTimeout(() => loadOwnerDashboard(), 500);
             }
-            
-            // Notify badge if not on IoT page
             if (currentPage !== 'iotEvents') {
               iotEventCount++;
               const badge = document.getElementById('iotEventBadge');
               if (badge) { badge.style.display = ''; badge.textContent = iotEventCount > 9 ? '9+' : iotEventCount; }
             }
-          } catch (_) {}
+          } catch (_) { }
         };
         sseConnection.onerror = () => {
           const dot = document.getElementById('iotStreamDot');
           if (dot) dot.style.background = '#ef4444';
           const liveDot = document.getElementById('iotLiveDot');
           if (liveDot) liveDot.style.background = '#94a3b8';
-          // Retry after 5 s
           setTimeout(startSseStream, 5000);
         };
         sseConnection.onopen = () => {
           const dot = document.getElementById('iotStreamDot');
           if (dot) dot.style.background = '#10b981';
-          // Mark dashboard feed as ready
           const feed = document.getElementById('dashboardEventsFeed');
           if (feed && feed.children.length === 1 && feed.firstElementChild.textContent.includes('Connecting')) {
-            feed.firstElementChild.setAttribute('data-placeholder','1');
+            feed.firstElementChild.setAttribute('data-placeholder', '1');
             feed.firstElementChild.textContent = 'Waiting for hardware events...';
           }
         };
-      } catch(e) {
-        console.warn('SSE not supported or connection failed:', e);
-      }
+      } catch (e) { console.warn('SSE not supported or connection failed:', e); }
     }
 
-    // ── Load historical events via HTTP (for page open) ──────────────
     async function loadIotEvents() {
       const filterEl = document.getElementById('iotToiletFilter');
       const toiletId = filterEl ? filterEl.value : 'all';
@@ -2008,50 +1826,29 @@ async function subscribeToPush() {
       if (!list) return;
       list.innerHTML = '<div style="text-align:center;padding:32px;color:var(--ink3);">Loading...</div>';
       try {
-        // Try each toilet, or use a known one
         let events = [];
         if (toiletId === 'all') {
-          // Fetch for toilets 1–10 and merge
           for (let i = 1; i <= 5; i++) {
-            try {
-              const r = await fetch(`${API_BASE}/hardware/events/${i}?limit=20`);
-              if (r.ok) { const d = await r.json(); events = events.concat(d); }
-            } catch(_) {}
+            try { const r = await fetch(`${API_BASE}/hardware/events/${i}?limit=20`); if (r.ok) { const d = await r.json(); events = events.concat(d); } } catch (_) { }
           }
-          events.sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
+          events.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
           events = events.slice(0, 50);
         } else {
           const r = await fetch(`${API_BASE}/hardware/events/${toiletId}?limit=50`);
           if (r.ok) events = await r.json();
         }
-        if (!events.length) {
-          list.innerHTML = '<div style="text-align:center;padding:32px;color:var(--ink3);">No events yet. Tap an RFID card to see live activity.</div>';
-          return;
-        }
+        if (!events.length) { list.innerHTML = '<div style="text-align:center;padding:32px;color:var(--ink3);">No events yet. Tap an RFID card to see live activity.</div>'; return; }
         list.innerHTML = events.map(ev => buildEventRow(ev)).join('');
-        // Update counters
         const today = new Date().toDateString();
         events.forEach(ev => {
           if (new Date(ev.created_at).toDateString() !== today) return;
-          if (ev.event_type==='door_open'||ev.event_type==='door_close') {
-            const el = document.getElementById('iotDoorCount');
-            if (el) el.textContent = parseInt(el.textContent||0)+1;
-          }
-          if (ev.event_type==='rfid_tap') {
-            const el = document.getElementById('iotRfidCount');
-            if (el) el.textContent = parseInt(el.textContent||0)+1;
-          }
-          if (ev.event_type==='flush') {
-            const el = document.getElementById('iotFlushCount');
-            if (el) el.textContent = parseInt(el.textContent||0)+1;
-          }
+          if (ev.event_type === 'door_open' || ev.event_type === 'door_close') { const el = document.getElementById('iotDoorCount'); if (el) el.textContent = parseInt(el.textContent || 0) + 1; }
+          if (ev.event_type === 'rfid_tap') { const el = document.getElementById('iotRfidCount'); if (el) el.textContent = parseInt(el.textContent || 0) + 1; }
+          if (ev.event_type === 'flush') { const el = document.getElementById('iotFlushCount'); if (el) el.textContent = parseInt(el.textContent || 0) + 1; }
         });
-      } catch(e) {
-        list.innerHTML = '<div style="text-align:center;padding:32px;color:var(--ink3);">Could not load events.</div>';
-      }
+      } catch (e) { list.innerHTML = '<div style="text-align:center;padding:32px;color:var(--ink3);">Could not load events.</div>'; }
     }
 
-    // ── Populate toilet filter dropdown ──────────────────────────────
     async function populateIotToiletFilter() {
       try {
         const role = currentUser && currentUser.role;
@@ -2067,10 +1864,9 @@ async function subscribeToPush() {
           sel.appendChild(opt.cloneNode(true));
           if (rfidSel) rfidSel.appendChild(opt);
         });
-      } catch(_) {}
+      } catch (_) { }
     }
 
-    // ── RFID Cards Management ────────────────────────────────────────
     async function loadRfidCards() {
       const list = document.getElementById('rfidCardsList');
       if (!list) return;
@@ -2079,50 +1875,23 @@ async function subscribeToPush() {
         const cards = await apiRequest('/rfid/cards');
         const el = document.getElementById('rfidCardCount');
         if (el) el.textContent = cards.length;
-        if (!cards.length) {
-          list.innerHTML = '<div style="text-align:center;padding:32px;color:var(--ink3);">No cards registered yet. Click "+ Register Card" to add one.</div>';
-          return;
-        }
-        list.innerHTML = `
-          <table>
-            <thead><tr>
-              <th>UID</th><th>Holder</th><th>Balance</th><th>Toilet</th><th>Status</th><th>Actions</th>
-            </tr></thead>
-            <tbody>
-              ${cards.map(c => `
-                <tr>
-                  <td><code style="font-size:13px;background:var(--bg2);padding:2px 6px;border-radius:4px;">${c.uid}</code></td>
-                  <td>${c.holder_name}</td>
-                  <td><strong style="color:${parseFloat(c.balance)<200?'#ef4444':'#10b981'};">RWF ${parseFloat(c.balance).toLocaleString()}</strong></td>
-                  <td>${c.toilet_location || '—'}</td>
-                  <td><span class="badge" style="background:${c.is_active?'rgba(16,185,129,.15)':'rgba(239,68,68,.15)'};color:${c.is_active?'#10b981':'#ef4444'};border-radius:20px;padding:2px 10px;font-size:11px;">${c.is_active?'Active':'Inactive'}</span></td>
-                  <td style="display:flex;gap:6px;">
-                    <button class="btn-sm btn-resolve" onclick="openTopUp(${c.id},'${c.uid}',${c.balance})">💳 Top Up</button>
-                    <button class="btn-sm btn-dismiss" onclick="deleteRfidCard(${c.id})">🗑</button>
-                  </td>
-                </tr>`).join('')}
-            </tbody>
-          </table>`;
-      } catch(e) {
-        list.innerHTML = '<div style="text-align:center;padding:32px;color:var(--ink3);">Error loading cards.</div>';
-      }
+        if (!cards.length) { list.innerHTML = '<div style="text-align:center;padding:32px;color:var(--ink3);">No cards registered yet. Click "+ Register Card" to add one.</div>'; return; }
+        list.innerHTML = `<table><thead><tr><th>UID</th><th>Holder</th><th>Balance</th><th>Toilet</th><th>Status</th><th>Actions</th></tr></thead><tbody>${cards.map(c => `<tr><td><code>${c.uid}</code><td>${c.holder_name}<td><strong style="color:${parseFloat(c.balance) < 200 ? '#ef4444' : '#10b981'};">RWF ${parseFloat(c.balance).toLocaleString()}</strong><td>${c.toilet_location || '—'}<td><span class="badge" style="background:${c.is_active ? 'rgba(16,185,129,.15)' : 'rgba(239,68,68,.15)'};color:${c.is_active ? '#10b981' : '#ef4444'};">${c.is_active ? 'Active' : 'Inactive'}</span><td style="display:flex;gap:6px;"><button class="btn-sm btn-resolve" onclick="openTopUp(${c.id},'${c.uid}',${c.balance})">💳 Top Up</button><button class="btn-sm btn-dismiss" onclick="deleteRfidCard(${c.id})">🗑</button></tr>`).join('')}</tbody></table>`;
+      } catch (e) { list.innerHTML = '<div style="text-align:center;padding:32px;color:var(--ink3);">Error loading cards.</div>'; }
     }
 
     async function registerRfidCard() {
-      const uid     = document.getElementById('rfidUid').value.trim();
-      const name    = document.getElementById('rfidHolderName').value.trim();
+      const uid = document.getElementById('rfidUid').value.trim();
+      const name = document.getElementById('rfidHolderName').value.trim();
       const balance = document.getElementById('rfidBalance').value;
-      const toilet  = document.getElementById('rfidToiletId').value;
+      const toilet = document.getElementById('rfidToiletId').value;
       if (!uid) { showToast('Enter the card UID', false); return; }
       try {
-        await apiRequest('/rfid/cards', {
-          method: 'POST',
-          body: JSON.stringify({ uid, holder_name: name||'User', balance: parseFloat(balance)||5000, toilet_id: toilet||null })
-        });
+        await apiRequest('/rfid/cards', { method: 'POST', body: JSON.stringify({ uid, holder_name: name || 'User', balance: parseFloat(balance) || 5000, toilet_id: toilet || null }) });
         showToast('Card registered! Tap it now — it will work.', true);
         closeModal('addRfidCardModal');
         loadRfidCards();
-      } catch(e) { /* apiRequest already shows toast */ }
+      } catch (e) { }
     }
 
     function openTopUp(id, uid, balance) {
@@ -2133,18 +1902,15 @@ async function subscribeToPush() {
     }
 
     async function doTopUp() {
-      const id  = document.getElementById('topupCardId').value;
+      const id = document.getElementById('topupCardId').value;
       const amt = parseFloat(document.getElementById('topupAmount').value);
       if (!amt || amt < 100) { showToast('Minimum top-up is RWF 100', false); return; }
       try {
-        await apiRequest(`/rfid/cards/${id}`, {
-          method: 'PUT',
-          body: JSON.stringify({ add_amount: amt })
-        });
+        await apiRequest(`/rfid/cards/${id}`, { method: 'PUT', body: JSON.stringify({ add_amount: amt }) });
         showToast(`RWF ${amt.toLocaleString()} added successfully!`, true);
         closeModal('topupRfidModal');
         loadRfidCards();
-      } catch(e) { /* apiRequest already shows toast */ }
+      } catch (e) { }
     }
 
     async function deleteRfidCard(id) {
@@ -2153,55 +1919,27 @@ async function subscribeToPush() {
         await apiRequest(`/rfid/cards/${id}`, { method: 'DELETE' });
         showToast('Card deleted.', true);
         loadRfidCards();
-      } catch(e) { /* apiRequest already shows toast */ }
+      } catch (e) { }
     }
 
-    // ── Hook into showPage to load IoT data on navigation ────────────
-    const _origShowPage = typeof showPage === 'function' ? showPage : null;
-    // Wrap showPage to trigger IoT loads
-    const _iotPageHook = function(page, btn, extra) {
-      if (page === 'iotEvents') {
-        iotEventCount = 0;
-        const badge = document.getElementById('iotEventBadge');
-        if (badge) badge.style.display = 'none';
-        loadIotEvents();
-      }
-      if (page === 'rfidCards') loadRfidCards();
-    };
-    // Patch the global showPage (defined earlier in the file)
     const _origSP = window.showPage;
     window.showPage = function(page, btn, extra) {
       _origSP && _origSP(page, btn, extra);
-      _iotPageHook(page, btn, extra);
+      if (page === 'iotEvents') { iotEventCount = 0; const badge = document.getElementById('iotEventBadge'); if (badge) badge.style.display = 'none'; loadIotEvents(); }
+      if (page === 'rfidCards') loadRfidCards();
     };
 
-    // ── Start everything when owner logs in ──────────────────────────
     const _origInitApp = window.initApp;
     window.initApp = function() {
       _origInitApp && _origInitApp();
-      // Start SSE for any logged-in user (owner or admin will see IoT)
-      setTimeout(() => {
-        startSseStream();
-        populateIotToiletFilter();
-      }, 1500);
+      setTimeout(() => { startSseStream(); populateIotToiletFilter(); }, 1500);
     };
 
-    // ── Inject pulse + fadeIn CSS ─────────────────────────────────────
     (function() {
       const s = document.createElement('style');
-      s.textContent = `
-        @keyframes pulse {
-          0%,100% { opacity:1; transform:scale(1); }
-          50%      { opacity:.4; transform:scale(.8); }
-        }
-        @keyframes fadeIn {
-          from { opacity:0; transform:translateY(-6px); }
-          to   { opacity:1; transform:translateY(0); }
-        }
-      `;
+      s.textContent = `@keyframes pulse{0%,100%{opacity:1;transform:scale(1);}50%{opacity:.4;transform:scale(.8);}}@keyframes fadeIn{from{opacity:0;transform:translateY(-6px);}to{opacity:1;transform:translateY(0);}}`;
       document.head.appendChild(s);
     })();
-
   </script>
 </body>
 
