@@ -120,7 +120,7 @@ exports.rfidTap = async (req, res) => {
     }
 
     const card = cards[0];
-    const FARE = 200.00;
+    const FARE = 100.00;
 
     if (parseFloat(card.balance) < FARE) {
       await logAndBroadcast(toilet_id, 'rfid_denied', `Insufficient balance for ${cleanUid}: ${card.balance}`);
