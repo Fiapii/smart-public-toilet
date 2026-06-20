@@ -11,17 +11,28 @@ self.addEventListener('push', function(event) {
     body = event.data.text();
   }
 
+  const options = {
+    body: body,
+    icon: '/icon.png',
+    badge: '/badge.png',          // Optional – small icon for status bar (Android)
+    vibrate: [300, 100, 400, 100, 500, 200, 600, 100, 800], // Long, strong pattern
+    requireInteraction: true,     // Stays until user acts
+    silent: false,                // Play system default sound
+    actions: [
+      { action: 'open', title: 'Open Dashboard' }
+    ]
+  };
+
   event.waitUntil(
-    self.registration.showNotification(title, {
-      body: body,
-      icon: '/icon.png',
-      vibrate: [500, 300, 400],
-      requireInteraction: true
-    })
+    self.registration.showNotification(title, options)
   );
 });
 
 self.addEventListener('notificationclick', function(event) {
   event.notification.close();
-  event.waitUntil(clients.openWindow('/interface.html'));
+  if (event.action === 'open') {
+    event.waitUntil(clients.openWindow('/interface.html'));
+  } else {
+    event.waitUntil(clients.openWindow('/interface.html'));
+  }
 });
