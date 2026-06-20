@@ -1,6 +1,6 @@
 const db = require('../config/db');
 const paypack = require('../services/paypack');
-const { sendPushToCleaner } = require('../services/pushService');
+const { sendPushToCleaner, sendPushToOwner } = require('../services/pushService'); // ← added owner
 
 // ─────────────────────────────────────────────────────────────
 // SSE client registry and broadcast helpers
@@ -120,7 +120,7 @@ exports.rfidTap = async (req, res) => {
     }
 
     const card = cards[0];
-    const FARE = 100.00;
+    const FARE = 100.00; // <-- keep as you have (or make dynamic later)
 
     if (parseFloat(card.balance) < FARE) {
       await logAndBroadcast(toilet_id, 'rfid_denied', `Insufficient balance for ${cleanUid}: ${card.balance}`);
@@ -294,14 +294,16 @@ exports.checkPaymentTrigger = async (req, res) => {
 };
 
 // ─────────────────────────────────────────────────────────────
-// Sensor data update (soap, smell) + automatic alert on bad smell
+// Sensor data update (soap, smell) + automatic alerts
 // ─────────────────────────────────────────────────────────────
 exports.updateSensors = async (req, res) => {
   const { toilet_id, soap_level, smell_level } = req.body;
   if (!toilet_id || !soap_level || !smell_level) {
     return res.status(400).json({ error: 'Missing parameters' });
   }
+
   try {
+    // Update toilet sensor values
     const [result] = await db.query(
       'UPDATE toilets SET soap_level = ?, smell_level = ? WHERE id = ?',
       [soap_level, smell_level, toilet_id]
@@ -310,79 +312,76 @@ exports.updateSensors = async (req, res) => {
 
     await logAndBroadcast(toilet_id, 'sensor_update', `soap=${soap_level}, smell=${smell_level}`);
 
-    if (smell_level === 'High') {
-      // Check existing open sensor complaint (last 10 minutes)
+    // ─── Helper to create a sensor complaint and send pushes ───
+    async function createSensorAlert(condition, description, title, body) {
+      // Check if there is already an open complaint for this condition (within 10 min)
       const [existing] = await db.query(
-        `SELECT id, created_at FROM complaints 
-         WHERE toilet_id = ? AND type = 'Sensor' AND status = 'open' 
-         AND created_at > NOW() - INTERVAL 10 MINUTE`,
-        [toilet_id]
+        `SELECT id FROM complaints 
+         WHERE toilet_id = ? AND type = 'Sensor' AND description LIKE ? 
+         AND status = 'open' AND created_at > NOW() - INTERVAL 10 MINUTE`,
+        [toilet_id, `%${condition}%`]
       );
 
-      // Get cleaner assigned to this toilet
-      const [toiletInfo] = await db.query('SELECT cleaner_id FROM toilets WHERE id = ?', [toilet_id]);
-      const cleanerId = toiletInfo.length ? toiletInfo[0].cleaner_id : null;
-
       if (existing.length === 0) {
-        // No open complaint → create new one and send initial alert
+        // Insert complaint
         await db.query(
           `INSERT INTO complaints (toilet_id, description, type, status, created_at)
            VALUES (?, ?, 'Sensor', 'open', NOW())`,
-          [toilet_id, 'Unpleasant smell detected. Please check ventilation or cleaning.']
+          [toilet_id, description]
         );
-        console.log(`[ALERT] Sensor complaint created for toilet ${toilet_id} (bad smell)`);
+        console.log(`[ALERT] Sensor complaint created for toilet ${toilet_id}: ${condition}`);
+
+        // Broadcast via SSE
         broadcastEvent(toilet_id, {
           event_type: 'alert',
-          details: 'Bad smell detected',
-          level: 'High'
+          details: description,
+          level: condition
         });
 
+        // Get cleaner & owner
+        const [toiletInfo] = await db.query('SELECT cleaner_id, owner_id FROM toilets WHERE id = ?', [toilet_id]);
+        const cleanerId = toiletInfo.length ? toiletInfo[0].cleaner_id : null;
+        const ownerId = toiletInfo.length ? toiletInfo[0].owner_id : null;
+
+        // Send push to cleaner
         if (cleanerId) {
-          await sendPushToCleaner(
-            cleanerId,
-            '🚨 Bad Smell Alert',
-            `Toilet #${toilet_id} has high odour. Please check ventilation or cleaning.`
-          );
-          console.log(`[PUSH] Initial bad smell notification sent to cleaner ${cleanerId}`);
-        } else {
-          console.log(`[PUSH] No cleaner assigned to toilet ${toilet_id}, skipping push`);
+          await sendPushToCleaner(cleanerId, title, body);
+          console.log(`[PUSH] ${condition} alert sent to cleaner ${cleanerId}`);
+        }
+
+        // Send push to owner (if owner exists and sendPushToOwner is available)
+        if (ownerId) {
+          try {
+            await sendPushToOwner(ownerId, title, body);
+            console.log(`[PUSH] ${condition} alert sent to owner ${ownerId}`);
+          } catch (err) {
+            // If sendPushToOwner is not implemented, ignore
+            console.warn('[PUSH] Owner push skipped (function may not exist)');
+          }
         }
       } else {
-        // Complaint already open → send reminder only if last reminder was 5+ minutes ago
-        const complaintCreatedAt = new Date(existing[0].created_at);
-        const now = new Date();
-        const minutesSinceComplaint = (now - complaintCreatedAt) / (1000 * 60);
-
-        // Reminder threshold: 5 minutes (adjust as you like)
-        if (minutesSinceComplaint >= 5) {
-          // Instead of sending a reminder every time, we only send one reminder every 5 minutes.
-          // To avoid spamming on every sensor reading (every 10s), we also need to track last reminder time.
-          // A simple way: check if the complaint creation time is older than 5 minutes and send a reminder.
-          // But this would send a reminder on every sensor read after 5 minutes.
-          // Better: we update a last_reminder_sent column, but for simplicity we'll limit to once per 5 min by checking if reminder was sent recently.
-          
-          // For a bachelor prototype, we can just send one reminder 5 minutes after complaint creation,
-          // but that may be too early. Let's send a reminder every 5 minutes by checking the difference modulo 5.
-          // However, that's messy. Cleaner solution: use a separate table or a field 'last_reminder_at'.
-          // For now, we'll send one reminder 5 minutes after complaint was created (only once).
-          // If you want repeated reminders, we can implement a more robust mechanism.
-          
-          // This simplified version sends ONE reminder after 5 minutes.
-          console.log(`[ALERT] Smell still High after 5 minutes – sending one reminder`);
-          if (cleanerId) {
-            await sendPushToCleaner(
-              cleanerId,
-              '⚠️ Reminder: Bad smell persists',
-              `Toilet #${toilet_id} still has high odour. Please take action.`
-            );
-            console.log(`[PUSH] Reminder push sent to cleaner ${cleanerId}`);
-          }
-          // To prevent repeated reminders, we could update a flag in the complaint row, e.g., 'reminder_sent = 1'
-          // We'll leave that as a future enhancement.
-        } else {
-          console.log(`[ALERT] Smell still High, but complaint open and within 5 minutes (no reminder yet)`);
-        }
+        console.log(`[ALERT] ${condition} complaint already open for toilet ${toilet_id} (within 10 min)`);
       }
+    }
+
+    // ─── Smell alert ───
+    if (smell_level === 'High') {
+      await createSensorAlert(
+        'smell',
+        'Unpleasant smell detected. Please check ventilation or cleaning.',
+        '🚨 Bad Smell Alert',
+        `Toilet #${toilet_id} has high odour. Please check ventilation or cleaning.`
+      );
+    }
+
+    // ─── Soap alert (NEW) ───
+    if (soap_level === 'Low') {
+      await createSensorAlert(
+        'soap',
+        'Soap level is low. Please refill the soap dispenser.',
+        '🧴 Low Soap Alert',
+        `Toilet #${toilet_id} is low on soap. Please refill.`
+      );
     }
 
     res.json({ message: 'Sensor data updated' });

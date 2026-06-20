@@ -9,6 +9,7 @@ function setupPush() {
   );
 }
 
+// ─── Cleaner push ────────────────────────────────────────────
 async function sendPushToCleaner(cleanerId, title, body) {
   try {
     const [rows] = await db.query(
@@ -26,7 +27,7 @@ async function sendPushToCleaner(cleanerId, title, body) {
     console.log(`✅ Push sent to cleaner ${cleanerId}`);
     return true;
   } catch (err) {
-    console.error(`❌ Push error:`, err);
+    console.error(`❌ Push error (cleaner ${cleanerId}):`, err);
     if (err.statusCode === 410) {
       await db.query('DELETE FROM push_subscriptions WHERE cleaner_id = ?', [cleanerId]);
     }
@@ -34,4 +35,30 @@ async function sendPushToCleaner(cleanerId, title, body) {
   }
 }
 
-module.exports = { setupPush, sendPushToCleaner };
+// ─── Owner push ──────────────────────────────────────────────
+async function sendPushToOwner(ownerId, title, body) {
+  try {
+    const [rows] = await db.query(
+      'SELECT endpoint, auth, p256dh FROM owner_push_subscriptions WHERE owner_id = ?',
+      [ownerId]
+    );
+    if (rows.length === 0) return false;
+
+    const subscription = {
+      endpoint: rows[0].endpoint,
+      keys: { auth: rows[0].auth, p256dh: rows[0].p256dh }
+    };
+    const payload = JSON.stringify({ title, body });
+    await webpush.sendNotification(subscription, payload);
+    console.log(`✅ Push sent to owner ${ownerId}`);
+    return true;
+  } catch (err) {
+    console.error(`❌ Push error (owner ${ownerId}):`, err);
+    if (err.statusCode === 410) {
+      await db.query('DELETE FROM owner_push_subscriptions WHERE owner_id = ?', [ownerId]);
+    }
+    return false;
+  }
+}
+
+module.exports = { setupPush, sendPushToCleaner, sendPushToOwner };

@@ -63,7 +63,7 @@ router.delete('/push/unsubscribe', async (req, res) => {
   const cleanerId = req.user.id;
   try {
     await db.query('DELETE FROM push_subscriptions WHERE cleaner_id = ?', [cleanerId]);
-    res.json({ success: true, message: 'Unsubscribed from push notifications' });
+    res.json({ success: true, message: 'Unsubscribed from  notifications' });
   } catch (error) {
     console.error('[Push Unsubscribe Error]', error);
     res.status(500).json({ error: error.message });
